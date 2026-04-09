@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subnet Divider</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f5f3;
+            --page: #ffffff;
+            --border: #e4e4e0;
+            --label: #8a8a85;
+            --value: #1a1a18;
+            --muted: #b0b0aa;
+            --section-bg: #fafaf8;
+            --accent: #2563eb;
+            --accent-bg: #eff6ff;
+            --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--value);
+            min-height: 100vh;
+            padding: 2rem 1rem 4rem;
+        }
+
+        .page { max-width: 900px; margin: 0 auto; }
+
+        /* Header */
+        .header { margin-bottom: 1.5rem; }
+
+        .header-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .header-label a { color: inherit; text-decoration: none; }
+        .header-label a:hover { text-decoration: underline; }
+
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--value);
+        }
+
+        /* Input bar */
+        .input-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .input-bar input {
+            flex: 1;
+            min-width: 180px;
+            font-family: var(--mono);
+            font-size: 14px;
+            padding: 0.6rem 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--page);
+            color: var(--value);
+            outline: none;
+        }
+
+        .input-bar input:focus { border-color: var(--accent); }
+
+        .btn {
+            font-family: var(--sans);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .btn-go { background: var(--accent); color: #fff; }
+        .btn-go:hover { background: #1d4ed8; }
+
+        .btn-reset {
+            background: var(--section-bg);
+            color: var(--label);
+            border: 1px solid var(--border);
+        }
+        .btn-reset:hover { background: var(--border); }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 12.5px;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+
+        .stats-bar strong { color: var(--value); }
+
+        /* Subnet table */
+        .subnet-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--page);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .subnet-table thead tr { background: var(--section-bg); }
+
+        .subnet-table th {
+            padding: 0.6rem 0.9rem;
+            text-align: left;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--label);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .subnet-table td {
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .subnet-table tbody tr:last-child td { border-bottom: none; }
+        .subnet-table tbody tr:hover { background: #fafafa; }
+
+        /* Visual column */
+        .td-vis {
+            width: 38%;
+            padding: 0;
+            position: relative;
+            height: 36px;
+        }
+
+        .vis-track {
+            position: absolute;
+            inset: 4px 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .vis-fill {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            border-radius: 4px;
+            transition: width 0.15s ease;
+        }
+
+        /* Depth colors */
+        .d0 { background: #bfdbfe; }
+        .d1 { background: #bbf7d0; }
+        .d2 { background: #fde68a; }
+        .d3 { background: #fca5a5; }
+        .d4 { background: #d9b3f9; }
+        .d5 { background: #fed7aa; }
+        .d6 { background: #a5f3fc; }
+        .d7 { background: #fbcfe8; }
+
+        /* Depth colors — text */
+        .d0t { color: #1e40af; }
+        .d1t { color: #166534; }
+        .d2t { color: #854d0e; }
+        .d3t { color: #991b1b; }
+        .d4t { color: #6b21a8; }
+        .d5t { color: #9a3412; }
+        .d6t { color: #155e75; }
+        .d7t { color: #831843; }
+
+        /* Network column */
+        .td-net {
+            padding: 0 0.9rem;
+            font-family: var(--mono);
+            font-size: 12.5px;
+            white-space: nowrap;
+        }
+
+        .net-cidr { font-weight: 700; }
+        .net-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+        /* Hosts column */
+        .td-hosts {
+            padding: 0 0.9rem;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--label);
+            white-space: nowrap;
+        }
+
+        /* Actions column */
+        .td-actions {
+            padding: 0 0.75rem;
+            white-space: nowrap;
+        }
+
+        .btn-split, .btn-join {
+            font-family: var(--sans);
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .btn-split {
+            background: var(--accent-bg);
+            color: var(--accent);
+            border-color: #bfdbfe;
+            margin-right: 0.3rem;
+        }
+
+        .btn-split:hover { background: #dbeafe; }
+        .btn-split:disabled { opacity: 0.35; cursor: default; }
+
+        .btn-join {
+            background: #f0fdf4;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .btn-join:hover { background: #dcfce7; }
+
+        /* Empty state */
+        .empty {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .empty kbd {
+            font-family: var(--mono);
+            background: var(--section-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.1rem 0.4rem;
+            font-size: 12px;
+            color: var(--value);
+        }
+
+        /* Error */
+        .error-msg {
+            padding: 0.65rem 1rem;
+            background: #fff1f2;
+            border: 1px solid #fca5a5;
+            border-radius: 7px;
+            color: #991b1b;
+            font-size: 13px;
+            margin-bottom: 0.75rem;
+        }
+
+        @media (max-width: 640px) {
+            .td-hosts { display: none; }
+            .td-vis { width: 45%; }
+            .net-sub { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .td-vis { width: 35%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="header">
+        <div class="header-label"><a href="/">GeoIP</a> · Network Tools</div>
+        <div class="header-title">Subnet Divider</div>
+    </div>
+
+    <form class="input-bar" onsubmit="go(event)">
+        <input type="text" id="net-input"
+               placeholder="e.g. 10.0.0.0/8  or  2001:db8::/32"
+               autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn btn-go">Go</button>
+        <button type="button" class="btn btn-reset" onclick="reset()">Reset</button>
+    </form>
+
+    <div id="error" style="display:none" class="error-msg"></div>
+    <div id="stats" class="stats-bar" style="display:none"></div>
+    <div id="output">
+        <div class="empty">
+            Enter a network prefix above — e.g. <kbd>192.168.0.0/24</kbd> — then use
+            <strong>Split</strong> to divide any subnet into two equal halves,
+            and <strong>Join</strong> to merge siblings back together.
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ── State ──────────────────────────────────────────────────────────── */
+let nodes      = [];   // [{net: number|BigInt, prefix: number}]
+let rootPrefix = 0;
+let isV6       = false;
+
+/* ── Entry point ─────────────────────────────────────────────────────── */
+function go(e) {
+    e && e.preventDefault();
+    const raw = document.getElementById('net-input').value.trim();
+    clearError();
+    if (!raw) return;
+
+    if (!raw.includes('/')) { return showError('Please include a prefix length, e.g. 10.0.0.0/8'); }
+
+    const [addrStr, prefStr] = raw.split('/');
+    const plen = parseInt(prefStr);
+    isV6 = addrStr.includes(':');
+
+    if (isV6) {
+        if (isNaN(plen) || plen < 0 || plen > 128) return showError('IPv6 prefix length must be 0–128');
+        let net;
+        try { net = parseV6(addrStr); } catch { return showError('Invalid IPv6 address'); }
+        const mask = plen === 0 ? 0n : ~((1n << BigInt(128 - plen)) - 1n);
+        rootPrefix = plen;
+        nodes = [{net: net & mask, prefix: plen}];
+    } else {
+        if (isNaN(plen) || plen < 0 || plen > 32) return showError('IPv4 prefix length must be 0–32');
+        let net;
+        try { net = parseV4(addrStr); } catch { return showError('Invalid IPv4 address'); }
+        const shift = 32 - plen;
+        const masked = plen === 0 ? 0 : ((net >>> shift) << shift) >>> 0;
+        rootPrefix = plen;
+        nodes = [{net: masked, prefix: plen}];
+    }
+
+    history.replaceState(null, '', '/subnet?q=' + encodeURIComponent(raw));
+    render();
+}
+
+function reset() {
+    if (nodes.length === 0) return;
+    nodes = [{net: nodes[0].net, prefix: rootPrefix}];
+    render();
+}
+
+function clearError() {
+    const el = document.getElementById('error');
+    el.style.display = 'none';
+    el.textContent = '';
+}
+
+function showError(msg) {
+    const el = document.getElementById('error');
+    el.textContent = msg;
+    el.style.display = '';
+}
+
+/* ── Operations ─────────────────────────────────────────────────────── */
+function split(i) {
+    const node     = nodes[i];
+    const newPfx   = node.prefix + 1;
+    if (isV6) {
+        const step = 1n << BigInt(128 - newPfx);
+        nodes.splice(i, 1,
+            {net: node.net,        prefix: newPfx},
+            {net: node.net + step, prefix: newPfx}
+        );
+    } else {
+        const step = newPfx === 32 ? 1 : (1 << (32 - newPfx)) >>> 0;
+        nodes.splice(i, 1,
+            {net: node.net,                  prefix: newPfx},
+            {net: (node.net + step) >>> 0,   prefix: newPfx}
+        );
+    }
+    render();
+}
+
+function join(i) {
+    const parent = {net: nodes[i].net, prefix: nodes[i].prefix - 1};
+    nodes.splice(i, 2, parent);
+    render();
+}
+
+function canSplit(node) {
+    return isV6 ? node.prefix < 128 : node.prefix < 32;
+}
+
+function isLeftChild(node) {
+    if (node.prefix <= rootPrefix) return false;
+    if (isV6) {
+        return (node.net & (1n << BigInt(128 - node.prefix))) === 0n;
+    } else {
+        const shift = 32 - node.prefix;
+        return shift >= 32 ? true : ((node.net >>> shift) & 1) === 0;
+    }
+}
+
+function canJoin(i) {
+    if (i >= nodes.length - 1) return false;
+    const L = nodes[i], R = nodes[i + 1];
+    if (L.prefix !== R.prefix)   return false;
+    if (L.prefix <= rootPrefix)  return false;
+    if (!isLeftChild(L))         return false;
+    if (isV6) {
+        const step = 1n << BigInt(128 - L.prefix);
+        return R.net === L.net + step;
+    } else {
+        const step = L.prefix === 32 ? 1 : (1 << (32 - L.prefix)) >>> 0;
+        return R.net === (L.net + step) >>> 0;
+    }
+}
+
+/* ── Rendering ──────────────────────────────────────────────────────── */
+function render() {
+    if (nodes.length === 0) return;
+
+    // Stats
+    const stats = document.getElementById('stats');
+    stats.style.display = 'flex';
+    stats.innerHTML =
+        `<span>Root: <strong>${netStr(nodes[0])}/${rootPrefix}</strong></span>` +
+        `<span>Subnets: <strong>${nodes.length}</strong></span>` +
+        `<span>IPv<strong>${isV6 ? 6 : 4}</strong></span>`;
+
+    // Table rows
+    let html = '';
+    for (let i = 0; i < nodes.length; i++) {
+        const n     = nodes[i];
+        const depth = n.prefix - rootPrefix;
+        const dc    = depth % 8;
+        const pct   = (Math.pow(2, -(depth)) * 100).toFixed(5);
+        const cidr  = netStr(n) + '/' + n.prefix;
+        const range = hostRange(n);
+        const hosts = hostCount(n);
+
+        const splitDisabled = canSplit(n) ? '' : ' disabled';
+        const joinHtml = canJoin(i)
+            ? `<button class="btn-join" onclick="join(${i})">Join ↑</button>`
+            : '';
+
+        html += `<tr>
+          <td class="td-vis">
+            <div class="vis-track">
+              <div class="vis-fill d${dc}" style="width:${pct}%"></div>
+            </div>
+          </td>
+          <td class="td-net">
+            <div class="net-cidr d${dc}t">${cidr}</div>
+            <div class="net-sub">${range}</div>
+          </td>
+          <td class="td-hosts">${hosts}</td>
+          <td class="td-actions">
+            <button class="btn-split"${splitDisabled} onclick="split(${i})">Split ÷2</button>${joinHtml}
+          </td>
+        </tr>`;
+    }
+
+    document.getElementById('output').innerHTML = `
+        <table class="subnet-table">
+          <thead><tr>
+            <th>Size</th>
+            <th>Network</th>
+            <th>Addresses</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody>${html}</tbody>
+        </table>`;
+}
+
+/* ── IPv4 helpers ───────────────────────────────────────────────────── */
+function parseV4(addr) {
+    const p = addr.split('.').map(Number);
+    if (p.length !== 4 || p.some(x => isNaN(x) || x < 0 || x > 255)) throw new Error('bad ipv4');
+    return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
+}
+
+function v4str(n) {
+    return [(n >>> 24)&255, (n >>> 16)&255, (n >>> 8)&255, n&255].join('.');
+}
+
+/* ── IPv6 helpers ───────────────────────────────────────────────────── */
+function parseV6(addr) {
+    let s = addr;
+    if (s.includes('::')) {
+        const [l, r] = s.split('::');
+        const left   = l ? l.split(':') : [];
+        const right  = r ? r.split(':') : [];
+        const fill   = 8 - left.length - right.length;
+        s = [...left, ...Array(fill).fill('0'), ...right].join(':');
+    }
+    let n = 0n;
+    for (const g of s.split(':')) n = (n << 16n) | BigInt(parseInt(g || '0', 16));
+    return n;
+}
+
+function v6str(n) {
+    const g = [];
+    for (let i = 7; i >= 0; i--) g.unshift(((n >> BigInt(i * 16)) & 0xffffn).toString(16));
+    let best = {s: -1, l: 0}, cur = {s: -1, l: 0};
+    for (let i = 0; i < 8; i++) {
+        if (g[i] === '0') {
+            if (cur.s < 0) cur = {s: i, l: 1}; else cur.l++;
+            if (cur.l > best.l) best = {...cur};
+        } else { cur = {s: -1, l: 0}; }
+    }
+    if (best.l > 1) {
+        const L = g.slice(0, best.s).join(':');
+        const R = g.slice(best.s + best.l).join(':');
+        return (L ? L + '::' : '::') + R;
+    }
+    return g.join(':');
+}
+
+/* ── Shared helpers ─────────────────────────────────────────────────── */
+function netStr(node) { return isV6 ? v6str(node.net) : v4str(node.net); }
+
+function hostRange(node) {
+    if (isV6) {
+        const last = node.net + (1n << BigInt(128 - node.prefix)) - 1n;
+        return v6str(node.net) + ' – ' + v6str(last);
+    }
+    const total = Math.pow(2, 32 - node.prefix);
+    const first = node.net;
+    const last  = (node.net + total - 1) >>> 0;
+    if (total <= 2) return v4str(first) + ' – ' + v4str(last);
+    return v4str((first + 1) >>> 0) + ' – ' + v4str((last - 1) >>> 0);
+}
+
+function hostCount(node) {
+    if (isV6) {
+        const n = 1n << BigInt(128 - node.prefix);
+        if (n >= 1000000000000n) return (n / 1000000000000n) + 'T addresses';
+        if (n >= 1000000000n)    return (n / 1000000000n)    + 'G addresses';
+        if (n >= 1000000n)       return (n / 1000000n)       + 'M addresses';
+        if (n >= 1000n)          return (n / 1000n)          + 'K addresses';
+        return n + ' addresses';
+    }
+    const total  = Math.pow(2, 32 - node.prefix);
+    const usable = Math.max(0, total - 2);
+    const fmt    = n => n >= 1073741824 ? Math.round(n/1073741824)+'G'
+                      : n >= 1048576    ? Math.round(n/1048576)+'M'
+                      : n >= 1024       ? Math.round(n/1024)+'K'
+                      : n;
+    return total <= 2
+        ? fmt(total) + ' addresses'
+        : fmt(usable) + ' usable / ' + fmt(total) + ' total';
+}
+
+/* ── Init from URL ──────────────────────────────────────────────────── */
+(function () {
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) {
+        document.getElementById('net-input').value = q;
+        go();
+    }
+})();
+</script>
+</body>
+</html>

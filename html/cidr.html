@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$prefix — CIDR</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f5f3;
+            --page: #ffffff;
+            --border: #e4e4e0;
+            --label: #8a8a85;
+            --value: #1a1a18;
+            --muted: #b0b0aa;
+            --section-bg: #fafaf8;
+            --accent: #2563eb;
+            --accent-bg: #eff6ff;
+            --tag-bg: #f0f0ec;
+            --tag-text: #5a5a55;
+            --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--value);
+            min-height: 100vh;
+            padding: 2rem 1rem 4rem;
+        }
+
+        .page { max-width: 720px; margin: 0 auto; }
+
+        .header { margin-bottom: 2rem; }
+
+        .header-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .header-prefix {
+            font-family: var(--mono);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--value);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .header-version {
+            margin-top: 0.35rem;
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 0.1rem 0.45rem;
+            border-radius: 4px;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+        }
+
+        .card {
+            background: var(--page);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--section-bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header svg { opacity: 0.4; flex-shrink: 0; }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--label);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 175px 1fr;
+            align-items: baseline;
+            padding: 0.65rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            gap: 1rem;
+        }
+
+        .row:last-child { border-bottom: none; }
+
+        .row-label {
+            font-size: 12px;
+            color: var(--label);
+            font-weight: 500;
+        }
+
+        .row-value {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--value);
+            font-weight: 500;
+        }
+
+        .row-value.plain {
+            font-family: var(--sans);
+            font-size: 14px;
+        }
+
+        /* Subnet divider */
+        .divider-controls {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .divider-controls label {
+            font-size: 12px;
+            color: var(--label);
+            font-weight: 500;
+        }
+
+        select {
+            font-family: var(--mono);
+            font-size: 12.5px;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: var(--bg);
+            color: var(--value);
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:focus { border-color: var(--accent); }
+
+        .divider-meta {
+            margin-left: auto;
+            font-size: 11.5px;
+            color: var(--muted);
+            font-family: var(--mono);
+        }
+
+        /* Visual subnet map */
+        .subnet-map {
+            padding: 0.75rem 1.25rem 1rem;
+        }
+
+        .subnet-row {
+            display: flex;
+            height: 28px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            font-family: var(--mono);
+            font-size: 11.5px;
+            align-items: center;
+        }
+
+        .subnet-addr {
+            min-width: 145px;
+            padding: 0 0.6rem;
+            color: var(--label);
+            font-size: 11px;
+            border-right: 1px solid var(--border);
+            background: var(--section-bg);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .subnet-bar {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 0.6rem;
+            position: relative;
+        }
+
+        .subnet-bar.c0 { background: #eff6ff; }
+        .subnet-bar.c1 { background: #f0fdf4; }
+        .subnet-bar.c2 { background: #fefce8; }
+        .subnet-bar.c3 { background: #fff7ed; }
+        .subnet-bar.c4 { background: #fdf4ff; }
+        .subnet-bar.c5 { background: #fff1f2; }
+        .subnet-bar.c6 { background: #f0fdfa; }
+        .subnet-bar.c7 { background: #f8fafc; }
+
+        .subnet-cidr {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .subnet-range {
+            margin-left: 0.75rem;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .subnet-link {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--accent);
+            text-decoration: none;
+            opacity: 0.6;
+        }
+
+        .subnet-link:hover { opacity: 1; text-decoration: underline; }
+
+        .too-many {
+            padding: 0.75rem 1.25rem 1rem;
+            font-size: 12.5px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* New search bar */
+        .search-bar {
+            padding: 1rem 1.25rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-bar input {
+            flex: 1;
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 0.45rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--value);
+            outline: none;
+        }
+
+        .search-bar input:focus { border-color: var(--accent); }
+
+        .search-bar button {
+            font-family: var(--sans);
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 0.45rem 0.85rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover { background: #1d4ed8; }
+
+        @media (max-width: 500px) {
+            .row { grid-template-columns: 1fr; gap: 0.1rem; }
+            .header-prefix { font-size: 1.3rem; }
+            .subnet-addr { min-width: 110px; font-size: 10px; }
+            .subnet-range { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="header">
+        <div class="header-label"><a href="/" style="color:inherit;text-decoration:none">GeoIP</a> · CIDR Calculator</div>
+        <div class="header-prefix">$prefix</div>
+        <span class="header-version">IPv$version</span>
+    </div>
+
+    <!-- Calculator -->
+    <div class="card">
+        <div class="card-header">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z" clip-rule="evenodd"/>
+            </svg>
+            <span class="card-title">Network Info</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Network Address</span>
+            <span class="row-value">$network_address</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Prefix Length</span>
+            <span class="row-value">/$prefix_length</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Subnet Mask</span>
+            <span class="row-value">$netmask</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Wildcard Mask</span>
+            <span class="row-value">$wildcard</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Broadcast</span>
+            <span class="row-value">$broadcast</span>
+        </div>
+        <div class="row">
+            <span class="row-label">First Host</span>
+            <span class="row-value">$first_host</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Last Host</span>
+            <span class="row-value">$last_host</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Usable Hosts</span>
+            <span class="row-value plain">$usable_hosts</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Total Addresses</span>
+            <span class="row-value plain">$num_addresses</span>
+        </div>
+    </div>
+
+    <!-- Subnet Divider -->
+    <div class="card">
+        <div class="card-header">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/>
+            </svg>
+            <span class="card-title">Subnet Divider</span>
+        </div>
+
+        <div class="divider-controls">
+            <label for="subnet-select">Divide into</label>
+            <select id="subnet-select" onchange="renderSubnets()"></select>
+            <span class="divider-meta" id="divider-meta"></span>
+        </div>
+
+        <div id="subnet-output"></div>
+    </div>
+
+    <!-- Another prefix -->
+    <div class="card">
+        <div class="card-header">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+            </svg>
+            <span class="card-title">Look up another prefix</span>
+        </div>
+        <form class="search-bar" onsubmit="goCIDR(event)">
+            <input type="text" id="cidr-input" placeholder="e.g. 10.0.0.0/8" spellcheck="false" autocomplete="off">
+            <button type="submit">Go</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    const PREFIX  = "$prefix";
+    const VERSION = $version;
+
+    // Parse the network from server-provided values
+    const NET_ADDR = "$network_address";
+    const NET_LEN  = $prefix_length;
+    const MAX_LEN  = VERSION === 4 ? 32 : 128;
+
+    // Build select options: target prefix lengths longer than current
+    (function buildSelect() {
+        const sel = document.getElementById('subnet-select');
+        // Limit to avoid generating millions of rows in the browser
+        const maxTarget = Math.min(NET_LEN + 12, MAX_LEN);
+        for (let n = NET_LEN + 1; n <= maxTarget; n++) {
+            const count = Math.pow(2, n - NET_LEN);
+            const opt = document.createElement('option');
+            opt.value = n;
+            opt.textContent = '/' + n + '  (' + fmtNum(count) + ' subnets)';
+            sel.appendChild(opt);
+        }
+        if (sel.options.length === 0) {
+            sel.disabled = true;
+            document.getElementById('divider-meta').textContent = 'Already at maximum prefix length';
+            document.getElementById('subnet-output').innerHTML =
+                '<div class="too-many">This prefix cannot be divided further.</div>';
+            return;
+        }
+        renderSubnets();
+    })();
+
+    function renderSubnets() {
+        const targetLen = parseInt(document.getElementById('subnet-select').value);
+        const count     = Math.pow(2, targetLen - NET_LEN);
+        const output    = document.getElementById('subnet-output');
+        const meta      = document.getElementById('divider-meta');
+
+        meta.textContent = fmtNum(count) + ' × /' + targetLen;
+
+        const MAX_DISPLAY = 256;
+        if (count > MAX_DISPLAY) {
+            output.innerHTML =
+                '<div class="too-many">Too many subnets to display (' + fmtNum(count) +
+                '). Choose a shorter target prefix or use the JSON API.</div>';
+            return;
+        }
+
+        if (VERSION === 4) {
+            renderV4(targetLen, count, output);
+        } else {
+            renderV6(targetLen, count, output);
+        }
+    }
+
+    function renderV4(targetLen, count, container) {
+        const parts  = NET_ADDR.split('.').map(Number);
+        const base32 = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
+        const step   = Math.pow(2, 32 - targetLen);
+        const rows   = [];
+
+        for (let i = 0; i < count; i++) {
+            const n    = (base32 + i * step) >>> 0;
+            const addr = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+            const last = ((base32 + (i + 1) * step - 1) >>> 0);
+            const end  = [(last >>> 24) & 255, (last >>> 16) & 255, (last >>> 8) & 255, last & 255].join('.');
+            rows.push(subnetRow(addr, targetLen, addr + ' – ' + end, i));
+        }
+
+        container.innerHTML = '<div class="subnet-map">' + rows.join('') + '</div>';
+    }
+
+    function renderV6(targetLen, count, container) {
+        // Parse base address as BigInt
+        const expanded = expandV6(NET_ADDR);
+        let base = 0n;
+        const groups = expanded.split(':');
+        for (const g of groups) base = (base << 16n) | BigInt(parseInt(g, 16));
+
+        const step = 1n << BigInt(128 - targetLen);
+        const rows = [];
+
+        for (let i = 0; i < count; i++) {
+            const n    = base + BigInt(i) * step;
+            const addr = compressV6(n);
+            const last = compressV6(base + BigInt(i + 1) * step - 1n);
+            rows.push(subnetRow(addr, targetLen, addr + ' – ' + last, i));
+        }
+
+        container.innerHTML = '<div class="subnet-map">' + rows.join('') + '</div>';
+    }
+
+    function subnetRow(addr, len, range, idx) {
+        const cidr = addr + '/' + len;
+        const color = 'c' + (idx % 8);
+        return (
+            '<div class="subnet-row">' +
+            '<div class="subnet-addr">' + addr + '</div>' +
+            '<div class="subnet-bar ' + color + '">' +
+            '<span class="subnet-cidr">/' + len + '</span>' +
+            '<span class="subnet-range">' + range + '</span>' +
+            '<a class="subnet-link" href="/cidr/' + encodeURIComponent(cidr) + '">info</a>' +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    // --- IPv6 helpers ---
+    function expandV6(addr) {
+        // Expand :: and zero-pad groups
+        let s = addr;
+        if (s.includes('::')) {
+            const sides = s.split('::');
+            const left  = sides[0] ? sides[0].split(':') : [];
+            const right = sides[1] ? sides[1].split(':') : [];
+            const fill  = 8 - left.length - right.length;
+            s = [...left, ...Array(fill).fill('0'), ...right].join(':');
+        }
+        return s.split(':').map(g => g.padStart(4, '0')).join(':');
+    }
+
+    function compressV6(n) {
+        const groups = [];
+        for (let i = 7; i >= 0; i--) {
+            groups.unshift(((n >> BigInt(i * 16)) & 0xffffn).toString(16));
+        }
+        // Find longest run of zeros for ::
+        let best = {start: -1, len: 0}, cur = {start: -1, len: 0};
+        for (let i = 0; i < 8; i++) {
+            if (groups[i] === '0') {
+                if (cur.start === -1) cur = {start: i, len: 1};
+                else cur.len++;
+                if (cur.len > best.len) best = {...cur};
+            } else {
+                cur = {start: -1, len: 0};
+            }
+        }
+        if (best.len > 1) {
+            const left  = groups.slice(0, best.start).join(':');
+            const right = groups.slice(best.start + best.len).join(':');
+            return (left ? left + '::' : '::') + right;
+        }
+        return groups.join(':');
+    }
+
+    function fmtNum(n) {
+        return n.toLocaleString();
+    }
+
+    function goCIDR(e) {
+        e.preventDefault();
+        const v = document.getElementById('cidr-input').value.trim();
+        if (v) window.location.href = '/cidr/' + v;
+    }
+</script>
+</body>
+</html>
