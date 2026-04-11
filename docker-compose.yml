@@ -1,0 +1,24 @@
+x-logging: &x-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "200k"
+      max-file: "1"
+networks:
+  default:
+    name: ngxproxy
+    external: true
+
+services:
+  netscope:
+    !!merge <<: *x-logging
+    image: netscope
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./GeoLite2-ASN.mmdb:/app/GeoLite2-ASN.mmdb:ro
+      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb:ro
+      - ./GeoLite2-Country.mmdb:/app/GeoLite2-Country.mmdb:ro
+    environment:
+      VIRTUAL_HOST: netscope.local
+      VIRTUAL_PORT: 8000
