@@ -79,10 +79,19 @@ def shutdown():
 
 def lookup_ip(ip: str) -> dict:
     try:
+        asn_data, asn_prefix_len = DB_ASN.get_with_prefix_len(ip)
+        if asn_data and asn_prefix_len:
+            asn_net = ipaddress.ip_network(f"{ip}/{asn_prefix_len}", strict=False)
+            asn_prefix = str(asn_net)
+            asn_prefix_addr = str(asn_net.network_address)
+        else:
+            asn_prefix = asn_prefix_addr = ""
         return {
-            "asn":     DB_ASN.get(ip),
-            "city":    DB_CITY.get(ip),
-            "country": DB_COUNTRY.get(ip),
+            "asn":             asn_data,
+            "asn_prefix":      asn_prefix,
+            "asn_prefix_addr": asn_prefix_addr,
+            "city":            DB_CITY.get(ip),
+            "country":         DB_COUNTRY.get(ip),
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid IP or lookup error: {e}")
@@ -137,6 +146,8 @@ def flatten_for_html(ip: str, data: dict) -> dict:
         ip=ip,
         asn_number=_val(asn, "autonomous_system_number"),
         asn_org=_val(asn, "autonomous_system_organization"),
+        asn_prefix=data.get("asn_prefix", ""),
+        asn_prefix_addr=data.get("asn_prefix_addr", ""),
         continent=_en(city, "continent", "names"),
         country_name=_en(city, "country", "names") or _en(country, "country", "names"),
         country_iso=_val(city, "country", "iso_code") or _val(country, "country", "iso_code"),
