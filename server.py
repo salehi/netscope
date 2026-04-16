@@ -12,8 +12,7 @@ from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.routing import Route
 from starlette.exceptions import HTTPException
 
-HTML_DIR     = Path(__file__).parent / "html"
-COUNTRIES_DIR = Path(__file__).parent / "Countries"
+HTML_DIR = Path(__file__).parent / "html"
 
 IP_TEMPLATE      = Template((HTML_DIR / "ip.html").read_text())
 ASN_TEMPLATE     = Template((HTML_DIR / "asn.html").read_text())
@@ -29,20 +28,24 @@ SUBNET_HTML      = (HTML_DIR / "subnet.html").read_text()
 DB_ASN     = None
 DB_CITY    = None
 DB_COUNTRY = None
-ASN_CACHE:     dict[int, dict] = {}  # {asn: {"org": str, "networks": [str]}}
-COUNTRY_NAMES: dict[str, str]  = {}  # {iso: country_name}
+ASN_CACHE:        dict[int, dict] = {}   # {asn: {"org": str, "networks": [str]}}
+COUNTRY_NAMES:    dict[str, str]  = {}   # {iso: country_name}
+COUNTRY_ASN_MAP:  dict[str, list] = {}   # {iso: [(cidr, asn_int, org), ...]}
+COUNTRY_NAME_TO_ISO: dict[str, str] = {} # {lowercase_name: iso}
 START_TIME: float = 0.0
 
 
 def startup():
-    global DB_ASN, DB_CITY, DB_COUNTRY, ASN_CACHE, COUNTRY_NAMES, START_TIME
+    global DB_ASN, DB_CITY, DB_COUNTRY, ASN_CACHE, COUNTRY_NAMES, \
+           COUNTRY_ASN_MAP, COUNTRY_NAME_TO_ISO, START_TIME
     START_TIME = time.time()
     DB_ASN     = maxminddb.open_database("./GeoLite2-ASN.mmdb")
     DB_CITY    = maxminddb.open_database("./GeoLite2-City.mmdb")
     DB_COUNTRY = maxminddb.open_database("./GeoLite2-Country.mmdb")
 
-    # Build ASN cache — single full scan, eliminates per-request DB iteration
-    cache: dict[int, dict] = {}
+    # Build ASN cache and country→ASN map in a single pass over DB_ASN
+    cache:    dict[int, dict] = {}
+    ctry_map: dict[str, list] = {}
     for network, data in DB_ASN:
         if not data:
             continue
@@ -50,12 +53,29 @@ def startup():
         org     = data.get("autonomous_system_organization", "")
         if asn_int is None:
             continue
+        cidr = str(network)
         if asn_int not in cache:
             cache[asn_int] = {"org": org, "networks": []}
-        cache[asn_int]["networks"].append(str(network))
+        cache[asn_int]["networks"].append(cidr)
+
+        # resolve country for this network's first address
+        try:
+            ctry_data = DB_COUNTRY.get(str(network.network_address))
+        except Exception:
+            ctry_data = None
+        if ctry_data:
+            iso = (ctry_data.get("registered_country") or ctry_data.get("country") or {}).get("iso_code")
+            if not iso:
+                iso = (ctry_data.get("country") or {}).get("iso_code")
+            if iso:
+                ctry_map.setdefault(iso, []).append((cidr, asn_int, org))
+
     for entry in cache.values():
         entry["networks"].sort()
-    ASN_CACHE = cache
+    for entries in ctry_map.values():
+        entries.sort(key=lambda t: t[0])
+    ASN_CACHE       = cache
+    COUNTRY_ASN_MAP = ctry_map
 
     # Build country name cache
     names: dict[str, str] = {}
@@ -67,7 +87,8 @@ def startup():
             iso = rec.get("iso_code")
             if iso and iso not in names:
                 names[iso] = (rec.get("names") or {}).get("en", iso)
-    COUNTRY_NAMES = names
+    COUNTRY_NAMES    = names
+    COUNTRY_NAME_TO_ISO = {n.lower(): iso for iso, n in names.items()}
 
 
 def shutdown():
@@ -187,6 +208,20 @@ def _prefix_list_html(networks: list[str]) -> str:
     )
 
 
+def _country_prefix_list_html(entries: list[tuple]) -> str:
+    rows = []
+    for cidr, asn_int, org in entries:
+        v6cls = " v6" if ":" in cidr else ""
+        rows.append(
+            f'          <li class="entry{v6cls}">'
+            f'<a class="prefix" href="/ip/{cidr.split("/")[0]}">{cidr}</a>'
+            f'<a class="asn-tag" href="/asn/{asn_int}">AS{asn_int}</a>'
+            f'<a class="org-tag" href="/search?q={quote_plus(org)}">{org}</a>'
+            f'</li>'
+        )
+    return "\n".join(rows)
+
+
 # --- Route handlers ---
 
 async def index(request: Request):
@@ -236,28 +271,49 @@ async def asn_view(request: Request):
 
 
 async def country_view(request: Request):
-    iso  = request.path_params["iso"].upper()
-    path = COUNTRIES_DIR / f"{iso}.txt"
-    if not path.exists():
+    iso     = request.path_params["iso"].upper()
+    entries = COUNTRY_ASN_MAP.get(iso)
+    if not entries:
         raise HTTPException(status_code=404, detail=f"No data for country: {iso}")
 
-    lines    = path.read_text().splitlines()
-    networks = sorted(line.split("\t")[0] for line in lines if line.strip())
-    name     = COUNTRY_NAMES.get(iso, iso)
+    name = COUNTRY_NAMES.get(iso, iso)
 
     if "text/html" in request.headers.get("accept", ""):
         return HTMLResponse(COUNTRY_TEMPLATE.substitute(
             iso=iso,
             country_name=name,
-            network_count=len(networks),
-            networks_html=_prefix_list_html(networks),
+            network_count=len(entries),
+            networks_html=_country_prefix_list_html(entries),
         ))
     return JSONResponse({
-        "iso": iso,
-        "country": name,
-        "network_count": len(networks),
-        "networks": networks,
+        "iso":           iso,
+        "country":       name,
+        "network_count": len(entries),
+        "networks":      [{"cidr": c, "asn": a, "org": o} for c, a, o in entries],
     })
+
+
+async def country_search(request: Request):
+    q = request.query_params.get("q", "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Missing query parameter q")
+
+    if len(q) == 2:
+        iso = q.upper()
+    else:
+        iso = COUNTRY_NAME_TO_ISO.get(q.lower())
+        if not iso:
+            # partial match fallback
+            ql = q.lower()
+            for name, code in COUNTRY_NAME_TO_ISO.items():
+                if ql in name:
+                    iso = code
+                    break
+
+    if not iso or iso not in COUNTRY_ASN_MAP:
+        raise HTTPException(status_code=404, detail=f"Country not found: {q}")
+
+    return RedirectResponse(url=f"/country/{iso}", status_code=302)
 
 
 async def search(request: Request):
@@ -419,6 +475,7 @@ app = Starlette(
         Route("/myip",                   myip),
         Route("/asn/{asn}",              asn_view),
         Route("/country/{iso}",          country_view),
+        Route("/country-search",         country_search),
         Route("/search",                 search),
         Route("/cidr/{prefix:path}",     cidr_view),
         Route("/bulk",                   bulk_lookup, methods=["POST"]),

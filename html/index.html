@@ -226,6 +226,25 @@
 
     <div class="divider">or</div>
 
+    <!-- Country search -->
+    <div class="card">
+        <div class="card-header">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 7l2.55 2.4A1 1 0 0116 11H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/>
+            </svg>
+            <span class="card-title">Search by Country</span>
+        </div>
+        <div class="card-body">
+            <form class="input-row" onsubmit="goCountry(event)">
+                <input type="text" id="country-input" placeholder="e.g. US or United States" autocomplete="off">
+                <button type="submit">Search</button>
+            </form>
+            <div class="hint">Returns all IP ranges with AS name &amp; number</div>
+        </div>
+    </div>
+
+    <div class="divider">or</div>
+
     <!-- CIDR / Subnet Divider -->
     <div class="card">
         <div class="card-header">
@@ -272,6 +291,11 @@
         e.preventDefault();
         const v = document.getElementById('cidr-input').value.trim();
         if (v) window.location.href = '/subnet?q=' + encodeURIComponent(v);
+    }
+    function goCountry(e) {
+        e.preventDefault();
+        const v = document.getElementById('country-input').value.trim();
+        if (v) window.location.href = '/country-search?q=' + encodeURIComponent(v);
     }
 </script>
 </body>
