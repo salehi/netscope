@@ -223,6 +223,7 @@ async def asn_view(request: Request):
         return HTMLResponse(ASN_TEMPLATE.substitute(
             asn_number=asn_int,
             asn_org=entry["org"],
+            asn_org_url=quote_plus(entry["org"]),
             network_count=len(entry["networks"]),
             networks_html=_prefix_list_html(entry["networks"]),
         ))
@@ -276,7 +277,7 @@ async def search(request: Request):
         if results:
             rows = "\n".join(
                 f'<tr><td><a class="asn-link" href="/asn/{r["asn"]}">AS{r["asn"]}</a></td>'
-                f'<td>{r["organization"]}</td></tr>'
+                f'<td><a class="asn-num" href="/search?q={quote_plus(r["organization"])}">{r["organization"]}</a></td></tr>'
                 for r in results
             )
             results_html = (
