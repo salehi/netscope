@@ -3,6 +3,7 @@ import json
 import time
 from pathlib import Path
 from string import Template
+from urllib.parse import quote_plus
 import maxminddb
 
 from starlette.applications import Starlette
@@ -142,26 +143,40 @@ def flatten_for_html(ip: str, data: dict) -> dict:
     country = data.get("country") or {}
     subdivs = city.get("subdivisions") or []
 
+    lat = _val(city, "location", "latitude")
+    lon = _val(city, "location", "longitude")
+    acc = _val(city, "location", "accuracy_radius")
+    coords     = f"{lat}, {lon}" if (lat and lon) else "—"
+    coords_acc = f"± {acc} km" if acc else ""
+
+    country_name = _en(city, "country", "names") or _en(country, "country", "names")
+    country_iso  = _val(city, "country", "iso_code") or _val(country, "country", "iso_code")
+    reg_name     = _en(city, "registered_country", "names") or _en(country, "registered_country", "names")
+    reg_iso      = _val(city, "registered_country", "iso_code") or _val(country, "registered_country", "iso_code")
+
+    is_eu_raw = _val(city, "country", "is_in_european_union") or _val(country, "country", "is_in_european_union")
+    is_eu = "Yes" if str(is_eu_raw).lower() == "true" else ("No" if is_eu_raw != "" else "—")
+
     return dict(
         ip=ip,
-        asn_number=_val(asn, "autonomous_system_number"),
-        asn_org=_val(asn, "autonomous_system_organization"),
-        asn_prefix=data.get("asn_prefix", ""),
-        asn_prefix_addr=data.get("asn_prefix_addr", ""),
-        continent=_en(city, "continent", "names"),
-        country_name=_en(city, "country", "names") or _en(country, "country", "names"),
-        country_iso=_val(city, "country", "iso_code") or _val(country, "country", "iso_code"),
-        registered_country=_en(city, "registered_country", "names") or _en(country, "registered_country", "names"),
-        registered_country_iso=_val(city, "registered_country", "iso_code") or _val(country, "registered_country", "iso_code"),
-        subdivision=_en(subdivs[0], "names") if subdivs else "",
-        subdivision_iso=_val(subdivs[0], "iso_code") if subdivs else "",
-        city_name=_en(city, "city", "names"),
-        postal=_val(city, "postal", "code"),
-        latitude=_val(city, "location", "latitude"),
-        longitude=_val(city, "location", "longitude"),
-        accuracy_radius=_val(city, "location", "accuracy_radius"),
-        timezone=_val(city, "location", "time_zone"),
-        is_eu=str(_val(city, "country", "is_in_european_union") or _val(country, "country", "is_in_european_union")).lower(),
+        asn_number    = _val(asn, "autonomous_system_number") or "—",
+        asn_org       = _val(asn, "autonomous_system_organization") or "—",
+        asn_org_url   = quote_plus(_val(asn, "autonomous_system_organization") or ""),
+        asn_prefix    = data.get("asn_prefix", "") or "—",
+        asn_prefix_addr = data.get("asn_prefix_addr", ""),
+        continent     = _en(city, "continent", "names") or "—",
+        country_name  = country_name or "—",
+        country_iso   = country_iso or "—",
+        registered_country     = reg_name or "—",
+        registered_country_iso = reg_iso or "—",
+        subdivision     = _en(subdivs[0], "names") if subdivs else "—",
+        subdivision_iso = _val(subdivs[0], "iso_code") if subdivs else "",
+        city_name     = _en(city, "city", "names") or "—",
+        postal        = _val(city, "postal", "code") or "—",
+        coords        = coords,
+        coords_acc    = coords_acc,
+        timezone      = _val(city, "location", "time_zone") or "—",
+        is_eu         = is_eu,
     )
 
 

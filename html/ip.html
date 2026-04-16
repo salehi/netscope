@@ -280,7 +280,7 @@
         </div>
         <div class="row">
             <span class="row-label">Organization</span>
-            <span class="row-value">$asn_org</span>
+            <span class="row-value"><a class="asn-num" href="/search?q=$asn_org_url">$asn_org</a></span>
         </div>
         <div class="row">
             <span class="row-label">Network Prefix</span>
@@ -307,8 +307,24 @@
             <span class="row-value">$country_name <span class="tag">$country_iso</span></span>
         </div>
         <div class="row">
+            <span class="row-label">Registered Country</span>
+            <span class="row-value">$registered_country <span class="tag">$registered_country_iso</span></span>
+        </div>
+        <div class="row">
+            <span class="row-label">EU Member</span>
+            <span class="row-value">$is_eu</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Subdivision</span>
+            <span class="row-value">$subdivision <span class="tag">$subdivision_iso</span></span>
+        </div>
+        <div class="row">
             <span class="row-label">City</span>
             <span class="row-value">$city_name</span>
+        </div>
+        <div class="row">
+            <span class="row-label">Postal Code</span>
+            <span class="row-value mono">$postal</span>
         </div>
     </div>
 
@@ -325,11 +341,11 @@
         <div class="row">
             <span class="row-label">Lat / Lon</span>
             <span class="row-value">
-        <div class="coords">
-          <span class="latlng">$latitude, $longitude</span>
-          <span class="accuracy">± $accuracy_radius km accuracy radius</span>
-        </div>
-      </span>
+                <div class="coords">
+                    <span class="latlng">$coords</span>
+                    <span class="accuracy">$coords_acc</span>
+                </div>
+            </span>
         </div>
         <div class="row">
             <span class="row-label">Timezone</span>
