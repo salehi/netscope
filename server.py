@@ -20,6 +20,7 @@ COUNTRY_TEMPLATE = Template((HTML_DIR / "country.html").read_text())
 CIDR_TEMPLATE    = Template((HTML_DIR / "cidr.html").read_text())
 SEARCH_TEMPLATE        = Template((HTML_DIR / "search.html").read_text())
 MULTI_COUNTRY_TEMPLATE = Template((HTML_DIR / "multi_country.html").read_text())
+ASN_COUNTRY_TEMPLATE   = Template((HTML_DIR / "asn_country.html").read_text())
 INDEX_HTML       = (HTML_DIR / "index.html").read_text()
 SUBNET_HTML      = (HTML_DIR / "subnet.html").read_text()
 
@@ -236,7 +237,7 @@ async def subnet(request: Request):
 
 
 async def ip_lookup(request: Request):
-    ip   = request.path_params["ip"]
+    ip   = request.path_params["ip"].split("/")[0]
     data = lookup_ip(ip)
     if "text/html" in request.headers.get("accept", ""):
         return HTMLResponse(IP_TEMPLATE.substitute(flatten_for_html(ip, data)))
@@ -469,6 +470,45 @@ async def api_asn_networks(request: Request):
     })
 
 
+async def asn_country_view(request: Request):
+    asn_int = _asn_int(request.path_params["asn"])
+    iso     = request.path_params["iso"].upper()
+    entry   = ASN_CACHE.get(asn_int)
+    if not entry:
+        raise HTTPException(status_code=404, detail=f"No networks found for AS{asn_int}")
+
+    country_entries = COUNTRY_ASN_MAP.get(iso, [])
+    networks = sorted(cidr for cidr, a, _ in country_entries if a == asn_int)
+    if not networks:
+        raise HTTPException(status_code=404, detail=f"AS{asn_int} has no prefixes in {iso}")
+
+    country_name = COUNTRY_NAMES.get(iso, iso)
+
+    if "text/html" in request.headers.get("accept", ""):
+        items = []
+        for cidr in networks:
+            cls = " v6" if ":" in cidr else ""
+            items.append(f'<li class="{cls}"><a href="/ip/{cidr}">{cidr}</a></li>')
+        return HTMLResponse(ASN_COUNTRY_TEMPLATE.substitute(
+            asn_number=asn_int,
+            asn_org=entry["org"],
+            asn_org_url=quote_plus(entry["org"]),
+            iso=iso,
+            country_name=country_name,
+            network_count=len(networks),
+            total_count=len(entry["networks"]),
+            networks_html="\n".join(items),
+        ))
+    return JSONResponse({
+        "asn": asn_int,
+        "organization": entry["org"],
+        "country": iso,
+        "country_name": country_name,
+        "network_count": len(networks),
+        "networks": networks,
+    })
+
+
 async def multi_country_search(request: Request):
     q = request.query_params.get("q", "").strip()
     isos = [s.strip().upper() for s in q.split(",") if s.strip()] if q else []
@@ -487,7 +527,8 @@ async def multi_country_search(request: Request):
             rows = []
             for r in results:
                 tags = " ".join(
-                    f'<a class="country-tag {"matched" if iso in iso_set else ""}" href="/country/{iso}">'
+                    f'<a class="country-tag {"matched" if iso in iso_set else ""}" '
+                    f'href="/asn/{r["asn"]}/country/{iso}">'
                     f'{COUNTRY_NAMES.get(iso, iso)}&nbsp;({iso})</a>'
                     for iso in r["countries"]
                 )
@@ -543,13 +584,14 @@ app = Starlette(
     routes=[
         Route("/",                       index),
         Route("/subnet",                 subnet),
-        Route("/ip/{ip}",                ip_lookup),
+        Route("/ip/{ip:path}",           ip_lookup),
         Route("/myip",                   myip),
         Route("/asn/{asn}",              asn_view),
         Route("/country/{iso}",          country_view),
         Route("/country-search",         country_search),
         Route("/search",                 search),
         Route("/multi-country",          multi_country_search),
+        Route("/asn/{asn}/country/{iso}", asn_country_view),
         Route("/cidr/{prefix:path}",     cidr_view),
         Route("/bulk",                   bulk_lookup, methods=["POST"]),
         Route("/health",                 health),
