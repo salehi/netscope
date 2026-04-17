@@ -55,7 +55,7 @@ def startup():
             continue
         cidr = str(network)
         if asn_int not in cache:
-            cache[asn_int] = {"org": org, "networks": []}
+            cache[asn_int] = {"org": org, "networks": [], "countries": set()}
         cache[asn_int]["networks"].append(cidr)
 
         # resolve country for this network's first address
@@ -69,9 +69,11 @@ def startup():
                 iso = (ctry_data.get("country") or {}).get("iso_code")
             if iso:
                 ctry_map.setdefault(iso, []).append((cidr, asn_int, org))
+                cache[asn_int]["countries"].add(iso)
 
     for entry in cache.values():
         entry["networks"].sort()
+        entry["countries"] = sorted(entry["countries"])
     for entries in ctry_map.values():
         entries.sort(key=lambda t: t[0])
     ASN_CACHE       = cache
@@ -255,12 +257,18 @@ async def asn_view(request: Request):
         raise HTTPException(status_code=404, detail=f"No networks found for AS{asn_int}")
 
     if "text/html" in request.headers.get("accept", ""):
+        countries = entry.get("countries", [])
+        country_links = ", ".join(
+            f'<a class="asn-num" href="/country/{iso}">{COUNTRY_NAMES.get(iso, iso)}</a>'
+            for iso in countries
+        ) or "—"
         return HTMLResponse(ASN_TEMPLATE.substitute(
             asn_number=asn_int,
             asn_org=entry["org"],
             asn_org_url=quote_plus(entry["org"]),
             network_count=len(entry["networks"]),
             networks_html=_prefix_list_html(entry["networks"]),
+            country_row=country_links,
         ))
     return JSONResponse({
         "asn": asn_int,
