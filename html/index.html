@@ -245,6 +245,25 @@
 
     <div class="divider">or</div>
 
+    <!-- Multi-country ASN search -->
+    <div class="card">
+        <div class="card-header">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
+            </svg>
+            <span class="card-title">Multi-Country ASN Search</span>
+        </div>
+        <div class="card-body">
+            <form class="input-row" onsubmit="goMultiCountry(event)">
+                <input type="text" id="multi-country-input" placeholder="e.g. GB, IR or US, DE, FR" autocomplete="off" spellcheck="false">
+                <button type="submit">Search</button>
+            </form>
+            <div class="hint">Find ASes that span all listed countries</div>
+        </div>
+    </div>
+
+    <div class="divider">or</div>
+
     <!-- CIDR / Subnet Divider -->
     <div class="card">
         <div class="card-header">
@@ -266,6 +285,7 @@
     <div class="quick-links">
         <a href="/myip">/myip</a>
         <a href="/country/US">/country/…</a>
+        <a href="/multi-country">/multi-country</a>
         <a href="/health">/health</a>
     </div>
 
@@ -296,6 +316,11 @@
         e.preventDefault();
         const v = document.getElementById('country-input').value.trim();
         if (v) window.location.href = '/country-search?q=' + encodeURIComponent(v);
+    }
+    function goMultiCountry(e) {
+        e.preventDefault();
+        const v = document.getElementById('multi-country-input').value.trim();
+        if (v) window.location.href = '/multi-country?q=' + encodeURIComponent(v);
     }
 </script>
 </body>

@@ -18,7 +18,8 @@ IP_TEMPLATE      = Template((HTML_DIR / "ip.html").read_text())
 ASN_TEMPLATE     = Template((HTML_DIR / "asn.html").read_text())
 COUNTRY_TEMPLATE = Template((HTML_DIR / "country.html").read_text())
 CIDR_TEMPLATE    = Template((HTML_DIR / "cidr.html").read_text())
-SEARCH_TEMPLATE  = Template((HTML_DIR / "search.html").read_text())
+SEARCH_TEMPLATE        = Template((HTML_DIR / "search.html").read_text())
+MULTI_COUNTRY_TEMPLATE = Template((HTML_DIR / "multi_country.html").read_text())
 INDEX_HTML       = (HTML_DIR / "index.html").read_text()
 SUBNET_HTML      = (HTML_DIR / "subnet.html").read_text()
 
@@ -468,6 +469,69 @@ async def api_asn_networks(request: Request):
     })
 
 
+async def multi_country_search(request: Request):
+    q = request.query_params.get("q", "").strip()
+    isos = [s.strip().upper() for s in q.split(",") if s.strip()] if q else []
+    iso_set = set(isos)
+
+    results = []
+    if iso_set:
+        for asn, entry in ASN_CACHE.items():
+            countries = set(entry.get("countries", []))
+            if iso_set <= countries and len(countries) >= 2:
+                results.append({"asn": asn, "org": entry["org"], "countries": sorted(countries)})
+        results.sort(key=lambda r: r["org"].lower())
+
+    if "text/html" in request.headers.get("accept", ""):
+        if results:
+            rows = []
+            for r in results:
+                tags = " ".join(
+                    f'<a class="country-tag {"matched" if iso in iso_set else ""}" href="/country/{iso}">'
+                    f'{COUNTRY_NAMES.get(iso, iso)}&nbsp;({iso})</a>'
+                    for iso in r["countries"]
+                )
+                rows.append(
+                    f'<tr>'
+                    f'<td data-val="{r["asn"]}"><a class="asn-link" href="/asn/{r["asn"]}">AS{r["asn"]}</a></td>'
+                    f'<td data-val="{r["org"].lower()}"><a class="asn-link" style="font-family:inherit;font-size:inherit;font-weight:inherit;color:inherit" href="/search?q={quote_plus(r["org"])}">{r["org"]}</a></td>'
+                    f'<td data-val="{len(r["countries"])}"><span class="count-badge">{len(r["countries"])}</span></td>'
+                    f'<td>{tags}</td>'
+                    f'</tr>'
+                )
+            results_html = (
+                '<table class="results-table" id="results-table"><thead><tr>'
+                '<th data-col="0" data-type="num">AS</th>'
+                '<th data-col="1" data-type="str">Organization</th>'
+                '<th data-col="2" data-type="num">#</th>'
+                '<th data-col="3" data-type="str">Countries</th>'
+                '</tr></thead><tbody>' + "\n".join(rows) + '</tbody></table>'
+            )
+            result_meta_html = (
+                f'<div class="result-meta">'
+                f'<strong>{len(results)}</strong> AS(es) matching '
+                f'<strong>{", ".join(isos)}</strong> with ≥2 countries'
+                f'</div>'
+            )
+        elif q:
+            results_html = '<p class="no-results">No ASes found matching all specified countries.</p>'
+            result_meta_html = ""
+        else:
+            results_html = ""
+            result_meta_html = ""
+        return HTMLResponse(MULTI_COUNTRY_TEMPLATE.substitute(
+            query=q,
+            result_meta_html=result_meta_html,
+            results_html=results_html,
+        ))
+
+    return JSONResponse({
+        "query": isos,
+        "result_count": len(results),
+        "results": [{"asn": r["asn"], "organization": r["org"], "countries": r["countries"]} for r in results],
+    })
+
+
 async def http_exception(request: Request, exc: HTTPException):
     return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
 
@@ -485,6 +549,7 @@ app = Starlette(
         Route("/country/{iso}",          country_view),
         Route("/country-search",         country_search),
         Route("/search",                 search),
+        Route("/multi-country",          multi_country_search),
         Route("/cidr/{prefix:path}",     cidr_view),
         Route("/bulk",                   bulk_lookup, methods=["POST"]),
         Route("/health",                 health),
