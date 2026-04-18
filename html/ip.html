@@ -1,271 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$ip — IP Lookup</title>
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+{% extends "base.html" %}
 
-        :root {
-            --bg: #f5f5f3;
-            --page: #ffffff;
-            --border: #e4e4e0;
-            --label: #8a8a85;
-            --value: #1a1a18;
-            --muted: #b0b0aa;
-            --section-bg: #fafaf8;
-            --accent: #2563eb;
-            --accent-bg: #eff6ff;
-            --tag-bg: #f0f0ec;
-            --tag-text: #5a5a55;
-            --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        }
+{% block title %}{{ ip }} — IP Lookup — Netscope{% endblock %}
 
-        body {
-            background: var(--bg);
-            font-family: var(--sans);
-            font-size: 14px;
-            color: var(--value);
-            line-height: 1.5;
-            min-height: 100vh;
-            padding: 2rem 1rem 4rem;
-        }
+{% block content %}
+<div class="page page--default">
 
-        .page {
-            max-width: 720px;
-            margin: 0 auto;
-        }
+    <div class="header">
+        <div class="header-label">IP Address</div>
+        <div class="header-ip">{{ ip }}</div>
+        <div class="header-meta">
+            <strong>{{ asn_org }}</strong>
+            <span class="dot">·</span>
+            <span>{{ country_name }}</span>
+        </div>
+    </div>
 
-        /* Header */
-        .header {
-            margin-bottom: 2rem;
-        }
-
-        .center {
-            display: grid;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .header-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 0.4rem;
-        }
-
-        .header-ip {
-            font-family: var(--mono);
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--value);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-        }
-
-        .header-meta {
-            margin-top: 0.5rem;
-            font-size: 13px;
-            color: var(--label);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.25rem 0.6rem;
-            align-items: center;
-        }
-
-        .header-meta strong {
-            color: var(--value);
-            font-weight: 600;
-        }
-
-        .header-meta .dot {
-            color: var(--muted);
-        }
-
-        /* Card */
-        .card {
-            background: var(--page);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding: 0.75rem 1.25rem;
-            background: var(--section-bg);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header svg {
-            opacity: 0.4;
-            flex-shrink: 0;
-        }
-
-        .card-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--label);
-        }
-
-        /* Row */
-        .row {
-            display: grid;
-            grid-template-columns: 155px 1fr;
-            align-items: baseline;
-            padding: 0.65rem 1.25rem;
-            border-bottom: 1px solid var(--border);
-            gap: 1rem;
-        }
-
-        .row:last-child {
-            border-bottom: none;
-        }
-
-        .row-label {
-            font-size: 12px;
-            color: var(--label);
-            font-weight: 500;
-        }
-
-        .row-value {
-            font-size: 14px;
-            color: var(--value);
-            font-weight: 500;
-            word-break: break-word;
-        }
-
-        .row-value.mono {
-            font-family: var(--mono);
-            font-size: 13px;
-        }
-
-        .row-value.empty {
-            color: var(--muted);
-            font-style: italic;
-            font-weight: 400;
-        }
-
-        /* Tag */
-        .tag {
-            display: inline-block;
-            font-family: var(--mono);
-            font-size: 10.5px;
-            font-weight: 600;
-            padding: 0.1rem 0.4rem;
-            border-radius: 4px;
-            background: var(--tag-bg);
-            color: var(--tag-text);
-            vertical-align: middle;
-            margin-left: 0.35rem;
-            line-height: 1.5;
-        }
-
-        .tag.accent {
-            background: var(--accent-bg);
-            color: var(--accent);
-        }
-
-        /* AS number */
-        .asn-num {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .asn-num:hover {
-            text-decoration: underline;
-        }
-
-        /* Coords block */
-        .coords {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-        }
-
-        .coords .latlng {
-            font-family: var(--mono);
-            font-size: 13px;
-        }
-
-        .coords .accuracy {
-            font-size: 12px;
-            color: var(--label);
-        }
-
-        /* API footer */
-        .api-footer {
-            margin-top: 1.5rem;
-            padding: 0.9rem 1.25rem;
-            background: var(--page);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-
-        .api-footer-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 0.55rem;
-        }
-
-        .api-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.35rem;
-        }
-
-        .api-links a {
-            font-family: var(--mono);
-            font-size: 11.5px;
-            color: var(--accent);
-            text-decoration: none;
-            background: var(--accent-bg);
-            padding: 0.2rem 0.55rem;
-            border-radius: 5px;
-            font-weight: 500;
-        }
-
-        .api-links a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 500px) {
-            .row {
-                grid-template-columns: 1fr;
-                gap: 0.1rem;
-            }
-
-            .row-label {
-                font-size: 11px;
-            }
-
-            .header-ip {
-                font-size: 1.4rem;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="page">
     <!-- Network -->
     <div class="card">
         <div class="card-header">
@@ -276,15 +25,15 @@
         </div>
         <div class="row">
             <span class="row-label">AS Number</span>
-            <span class="row-value"><a class="asn-num" href="/asn/$asn_number">AS$asn_number</a></span>
+            <span class="row-value"><a class="asn-num" href="/asn/{{ asn_number }}">AS{{ asn_number }}</a></span>
         </div>
         <div class="row">
             <span class="row-label">Organization</span>
-            <span class="row-value"><a class="asn-num" href="/search?q=$asn_org_url">$asn_org</a></span>
+            <span class="row-value"><a class="asn-num" href="/search?q={{ asn_org_url }}">{{ asn_org }}</a></span>
         </div>
         <div class="row">
             <span class="row-label">Network Prefix</span>
-            <span class="row-value mono"><a class="asn-num" href="/ip/$asn_prefix_addr">$asn_prefix</a></span>
+            <span class="row-value mono"><a class="asn-num" href="/ip/{{ asn_prefix_addr }}">{{ asn_prefix }}</a></span>
         </div>
     </div>
 
@@ -300,31 +49,31 @@
         </div>
         <div class="row">
             <span class="row-label">Continent</span>
-            <span class="row-value">$continent</span>
+            <span class="row-value">{{ continent }}</span>
         </div>
         <div class="row">
             <span class="row-label">Country</span>
-            <span class="row-value">$country_name <span class="tag">$country_iso</span></span>
+            <span class="row-value">{{ country_name }} <span class="tag">{{ country_iso }}</span></span>
         </div>
         <div class="row">
             <span class="row-label">Registered Country</span>
-            <span class="row-value">$registered_country <span class="tag">$registered_country_iso</span></span>
+            <span class="row-value">{{ registered_country }} <span class="tag">{{ registered_country_iso }}</span></span>
         </div>
         <div class="row">
             <span class="row-label">EU Member</span>
-            <span class="row-value">$is_eu</span>
+            <span class="row-value">{{ is_eu }}</span>
         </div>
         <div class="row">
             <span class="row-label">Subdivision</span>
-            <span class="row-value">$subdivision <span class="tag">$subdivision_iso</span></span>
+            <span class="row-value">{{ subdivision }} <span class="tag">{{ subdivision_iso }}</span></span>
         </div>
         <div class="row">
             <span class="row-label">City</span>
-            <span class="row-value">$city_name</span>
+            <span class="row-value">{{ city_name }}</span>
         </div>
         <div class="row">
             <span class="row-label">Postal Code</span>
-            <span class="row-value mono">$postal</span>
+            <span class="row-value mono">{{ postal }}</span>
         </div>
     </div>
 
@@ -342,14 +91,14 @@
             <span class="row-label">Lat / Lon</span>
             <span class="row-value">
                 <div class="coords">
-                    <span class="latlng">$coords</span>
-                    <span class="accuracy">$coords_acc</span>
+                    <span class="latlng">{{ coords }}</span>
+                    <span class="accuracy">{{ coords_acc }}</span>
                 </div>
             </span>
         </div>
         <div class="row">
             <span class="row-label">Timezone</span>
-            <span class="row-value mono">$timezone</span>
+            <span class="row-value mono">{{ timezone }}</span>
         </div>
     </div>
 
@@ -357,13 +106,12 @@
     <div class="api-footer">
         <div class="api-footer-label">API Endpoints</div>
         <div class="api-links">
-            <a href="/ip/$ip">/ip/$ip</a>
-            <a href="/api/asn/$ip">/api/asn/$ip</a>
-            <a href="/api/city/$ip">/api/city/$ip</a>
-            <a href="/api/country/$ip">/api/country/$ip</a>
+            <a href="/ip/{{ ip }}">/ip/{{ ip }}</a>
+            <a href="/api/asn/{{ ip }}">/api/asn/{{ ip }}</a>
+            <a href="/api/city/{{ ip }}">/api/city/{{ ip }}</a>
+            <a href="/api/country/{{ ip }}">/api/country/{{ ip }}</a>
         </div>
     </div>
 
 </div>
-</body>
-</html>
+{% endblock %}

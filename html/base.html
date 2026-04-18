@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Netscope{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<header class="site-header">
+    <a class="site-logo" href="/">Netscope</a>
+    <nav class="site-nav-links">
+        <a href="/subnet">Subnet</a>
+        <a href="/health">Health</a>
+    </nav>
+</header>
+
+{% if breadcrumbs %}
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    {% for label, url in breadcrumbs %}
+        {% if not loop.last %}
+            <a class="bc-item" href="{{ url }}">{{ label }}</a><span class="bc-sep">›</span>
+        {% else %}
+            <span class="bc-item bc-current" aria-current="page">{{ label }}</span>
+        {% endif %}
+    {% endfor %}
+</nav>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+<script src="/static/app.js" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

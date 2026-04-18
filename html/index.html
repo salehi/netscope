@@ -1,287 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoIP Lookup</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+{% extends "base.html" %}
 
-        :root {
-            --bg: #f5f5f3;
-            --page: #ffffff;
-            --border: #e4e4e0;
-            --label: #8a8a85;
-            --value: #1a1a18;
-            --muted: #b0b0aa;
-            --section-bg: #fafaf8;
-            --accent: #2563eb;
-            --accent-bg: #eff6ff;
-            --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        }
+{% block title %}Netscope — GeoIP &amp; Network Lookup{% endblock %}
 
-        body {
-            background: var(--bg);
-            font-family: var(--sans);
-            font-size: 14px;
-            color: var(--value);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem 4rem;
-        }
-
-        .page { width: 100%; max-width: 520px; }
-
-        .brand {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-
-        .brand-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--value);
-            letter-spacing: -0.02em;
-        }
-
-        .brand-sub {
-            margin-top: 0.3rem;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .card {
-            background: var(--page);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 0.75rem;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding: 0.75rem 1.25rem;
-            background: var(--section-bg);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header svg { opacity: 0.4; flex-shrink: 0; }
-
-        .card-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--label);
-        }
-
-        .card-body { padding: 1rem 1.25rem; }
-
-        .input-row {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            font-family: var(--mono);
-            font-size: 13px;
-            padding: 0.55rem 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--bg);
-            color: var(--value);
-            outline: none;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--accent);
-            background: #fff;
-        }
-
-        button {
-            font-family: var(--sans);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 0.55rem 1rem;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        button:hover { background: #1d4ed8; }
-
-        .hint {
-            margin-top: 0.5rem;
-            font-size: 11.5px;
-            color: var(--muted);
-        }
-
-        /* Quick links */
-        .quick-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-top: 1rem;
-        }
-
-        .quick-links a {
-            font-family: var(--mono);
-            font-size: 11.5px;
-            color: var(--accent);
-            text-decoration: none;
-            background: var(--accent-bg);
-            padding: 0.25rem 0.6rem;
-            border-radius: 5px;
-            font-weight: 500;
-        }
-
-        .quick-links a:hover { text-decoration: underline; }
-
-        .divider {
-            text-align: center;
-            font-size: 11px;
-            color: var(--muted);
-            margin: 0.75rem 0;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        @media (max-width: 480px) {
-            .input-row { flex-direction: column; }
-        }
-    </style>
-</head>
-<body>
-<div class="page">
+{% block content %}
+<div class="page page--narrow">
 
     <div class="brand">
-        <div class="brand-title">GeoIP Lookup</div>
+        <div class="brand-title">Netscope</div>
         <div class="brand-sub">MaxMind GeoLite2 — offline database</div>
     </div>
 
-    <!-- IP Lookup -->
     <div class="card">
         <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-            </svg>
-            <span class="card-title">IP Lookup</span>
+            <span class="card-title">Search</span>
         </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goIP(event)">
-                <input type="text" id="ip-input" placeholder="e.g. 8.8.8.8 or 2001:4860::" autocomplete="off" spellcheck="false">
-                <button type="submit">Look up</button>
-            </form>
-            <div class="hint">IPv4 and IPv6 supported &nbsp;·&nbsp; <a href="/myip" style="color:var(--accent)">What's my IP?</a></div>
+        <div class="search-tabs" role="tablist">
+            <button class="search-tab active" data-type="ip"            role="tab" onclick="setTab('ip')">IP</button>
+            <button class="search-tab"        data-type="asn"           role="tab" onclick="setTab('asn')">ASN</button>
+            <button class="search-tab"        data-type="cidr"          role="tab" onclick="setTab('cidr')">CIDR</button>
+            <button class="search-tab"        data-type="country"       role="tab" onclick="setTab('country')">Country</button>
+            <button class="search-tab"        data-type="multi-country" role="tab" onclick="setTab('multi-country')">Multi-Country</button>
+            <button class="search-tab"        data-type="org"           role="tab" onclick="setTab('org')">Org</button>
         </div>
+        <form class="input-row" onsubmit="goSearch(event)">
+            <input id="main-search" type="text" autocomplete="off" spellcheck="false">
+            <button type="submit">Go</button>
+        </form>
+        <p class="search-hint" id="search-hint"></p>
     </div>
 
-    <div class="divider">or</div>
-
-    <!-- ASN Lookup -->
-    <div class="card">
-        <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-            </svg>
-            <span class="card-title">ASN Lookup</span>
-        </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goASN(event)">
-                <input type="text" id="asn-input" placeholder="e.g. AS15169 or 15169" autocomplete="off" spellcheck="false">
-                <button type="submit">Look up</button>
-            </form>
-            <div class="hint">Returns all network prefixes for the AS</div>
-        </div>
-    </div>
-
-    <div class="divider">or</div>
-
-    <!-- Org search -->
-    <div class="card">
-        <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-            </svg>
-            <span class="card-title">Search by Organization</span>
-        </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goSearch(event)">
-                <input type="text" id="search-input" placeholder="e.g. Cloudflare, Amazon, Hetzner" autocomplete="off">
-                <button type="submit">Search</button>
-            </form>
-            <div class="hint">Searches AS organization names</div>
-        </div>
-    </div>
-
-    <div class="divider">or</div>
-
-    <!-- Country search -->
-    <div class="card">
-        <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 7l2.55 2.4A1 1 0 0116 11H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/>
-            </svg>
-            <span class="card-title">Search by Country</span>
-        </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goCountry(event)">
-                <input type="text" id="country-input" placeholder="e.g. US or United States" autocomplete="off">
-                <button type="submit">Search</button>
-            </form>
-            <div class="hint">Returns all IP ranges with AS name &amp; number</div>
-        </div>
-    </div>
-
-    <div class="divider">or</div>
-
-    <!-- Multi-country ASN search -->
-    <div class="card">
-        <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
-            </svg>
-            <span class="card-title">Multi-Country ASN Search</span>
-        </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goMultiCountry(event)">
-                <input type="text" id="multi-country-input" placeholder="e.g. GB, IR or US, DE, FR" autocomplete="off" spellcheck="false">
-                <button type="submit">Search</button>
-            </form>
-            <div class="hint">Find ASes that span all listed countries</div>
-        </div>
-    </div>
-
-    <div class="divider">or</div>
-
-    <!-- CIDR / Subnet Divider -->
-    <div class="card">
-        <div class="card-header">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/>
-            </svg>
-            <span class="card-title">Subnet Divider</span>
-        </div>
-        <div class="card-body">
-            <form class="input-row" onsubmit="goSubnet(event)">
-                <input type="text" id="cidr-input" placeholder="e.g. 10.0.0.0/8 or 2001:db8::/32" autocomplete="off" spellcheck="false">
-                <button type="submit">Open</button>
-            </form>
-            <div class="hint">Interactively split any subnet into two equal halves &nbsp;·&nbsp; <a href="/cidr/192.168.0.0/24" style="color:var(--accent)">CIDR calculator</a></div>
-        </div>
-    </div>
-
-    <!-- Quick links -->
     <div class="quick-links">
         <a href="/myip">/myip</a>
         <a href="/country/US">/country/…</a>
@@ -290,38 +37,4 @@
     </div>
 
 </div>
-
-<script>
-    function goIP(e) {
-        e.preventDefault();
-        const v = document.getElementById('ip-input').value.trim();
-        if (v) window.location.href = '/ip/' + encodeURIComponent(v);
-    }
-    function goASN(e) {
-        e.preventDefault();
-        const v = document.getElementById('asn-input').value.trim();
-        if (v) window.location.href = '/asn/' + encodeURIComponent(v);
-    }
-    function goSearch(e) {
-        e.preventDefault();
-        const v = document.getElementById('search-input').value.trim();
-        if (v) window.location.href = '/search?q=' + encodeURIComponent(v);
-    }
-    function goSubnet(e) {
-        e.preventDefault();
-        const v = document.getElementById('cidr-input').value.trim();
-        if (v) window.location.href = '/subnet?q=' + encodeURIComponent(v);
-    }
-    function goCountry(e) {
-        e.preventDefault();
-        const v = document.getElementById('country-input').value.trim();
-        if (v) window.location.href = '/country-search?q=' + encodeURIComponent(v);
-    }
-    function goMultiCountry(e) {
-        e.preventDefault();
-        const v = document.getElementById('multi-country-input').value.trim();
-        if (v) window.location.href = '/multi-country?q=' + encodeURIComponent(v);
-    }
-</script>
-</body>
-</html>
+{% endblock %}

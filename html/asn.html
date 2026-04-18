@@ -1,249 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AS$asn_number — ASN Lookup</title>
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+{% extends "base.html" %}
 
-        :root {
-            --bg: #f5f5f3;
-            --page: #ffffff;
-            --border: #e4e4e0;
-            --label: #8a8a85;
-            --value: #1a1a18;
-            --muted: #b0b0aa;
-            --section-bg: #fafaf8;
-            --accent: #2563eb;
-            --accent-bg: #eff6ff;
-            --tag-bg: #f0f0ec;
-            --tag-text: #5a5a55;
-            --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        }
+{% block title %}AS{{ asn_number }} — ASN Lookup — Netscope{% endblock %}
 
-        body {
-            background: var(--bg);
-            font-family: var(--sans);
-            font-size: 14px;
-            color: var(--value);
-            line-height: 1.5;
-            min-height: 100vh;
-            padding: 2rem 1rem 4rem;
-        }
-
-        .page {
-            max-width: 720px;
-            margin: 0 auto;
-        }
-
-        .header {
-            margin-bottom: 2rem;
-        }
-
-        .header-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 0.4rem;
-        }
-
-        .header-asn {
-            font-family: var(--mono);
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-        }
-
-        .header-org {
-            margin-top: 0.4rem;
-            font-size: 15px;
-            color: var(--label);
-            font-weight: 500;
-        }
-
-        .card {
-            background: var(--page);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding: 0.75rem 1.25rem;
-            background: var(--section-bg);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header svg {
-            opacity: 0.4;
-            flex-shrink: 0;
-        }
-
-        .card-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--label);
-        }
-
-        .card-count {
-            margin-left: auto;
-            font-family: var(--mono);
-            font-size: 11px;
-            font-weight: 600;
-            background: var(--accent-bg);
-            color: var(--accent);
-            padding: 0.1rem 0.45rem;
-            border-radius: 4px;
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 155px 1fr;
-            align-items: baseline;
-            padding: 0.65rem 1.25rem;
-            border-bottom: 1px solid var(--border);
-            gap: 1rem;
-        }
-
-        .row:last-child {
-            border-bottom: none;
-        }
-
-        .row-label {
-            font-size: 12px;
-            color: var(--label);
-            font-weight: 500;
-        }
-
-        .row-value {
-            font-size: 14px;
-            color: var(--value);
-            font-weight: 500;
-            word-break: break-word;
-        }
-
-        .row-value.mono {
-            font-family: var(--mono);
-            font-size: 13px;
-        }
-
-        .asn-num {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        /* Network list */
-        .network-list {
-            list-style: none;
-            padding: 0.5rem 1.25rem;
-        }
-
-        .network-list li {
-            font-family: var(--mono);
-            font-size: 12.5px;
-            color: var(--value);
-            padding: 0.3rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .network-list li:last-child {
-            border-bottom: none;
-        }
-
-        .network-list li.v6 {
-            color: var(--label);
-        }
-
-        .network-list a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .network-list a:hover {
-            color: var(--accent);
-            text-decoration: underline;
-        }
-
-        /* API footer */
-        .api-footer {
-            margin-top: 1.5rem;
-            padding: 0.9rem 1.25rem;
-            background: var(--page);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-
-        .api-footer-label {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 0.55rem;
-        }
-
-        .api-links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.35rem;
-        }
-
-        .api-links a {
-            font-family: var(--mono);
-            font-size: 11.5px;
-            color: var(--accent);
-            text-decoration: none;
-            background: var(--accent-bg);
-            padding: 0.2rem 0.55rem;
-            border-radius: 5px;
-            font-weight: 500;
-        }
-
-        .api-links a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 500px) {
-            .row {
-                grid-template-columns: 1fr;
-                gap: 0.1rem;
-            }
-
-            .row-label {
-                font-size: 11px;
-            }
-
-            .header-asn {
-                font-size: 1.4rem;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="page">
+{% block content %}
+<div class="page page--default">
 
     <div class="header">
         <div class="header-label">Autonomous System</div>
-        <div class="header-asn">AS$asn_number</div>
-        <div class="header-org"><a class="asn-num" href="/search?q=$asn_org_url">$asn_org</a></div>
+        <div class="header-asn">AS{{ asn_number }}</div>
+        <div class="header-org"><a href="/search?q={{ asn_org_url }}">{{ asn_org }}</a></div>
     </div>
 
     <!-- Summary -->
@@ -256,19 +21,27 @@
         </div>
         <div class="row">
             <span class="row-label">AS Number</span>
-            <span class="row-value"><span class="asn-num">AS$asn_number</span></span>
+            <span class="row-value"><span class="asn-num">AS{{ asn_number }}</span></span>
         </div>
         <div class="row">
             <span class="row-label">Organization</span>
-            <span class="row-value"><a class="asn-num" href="/search?q=$asn_org_url">$asn_org</a></span>
+            <span class="row-value"><a class="asn-num" href="/search?q={{ asn_org_url }}">{{ asn_org }}</a></span>
         </div>
         <div class="row">
             <span class="row-label">Country</span>
-            <span class="row-value">$country_row</span>
+            <span class="row-value">
+                {% if countries %}
+                    {% for c in countries %}
+                        <a class="asn-num" href="/asn/{{ asn_number }}/country/{{ c.iso }}">{{ c.name }}</a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    —
+                {% endif %}
+            </span>
         </div>
         <div class="row">
             <span class="row-label">Total Prefixes</span>
-            <span class="row-value">$network_count</span>
+            <span class="row-value">{{ network_count }}</span>
         </div>
     </div>
 
@@ -279,10 +52,12 @@
                 <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
             </svg>
             <span class="card-title">Network Prefixes</span>
-            <span class="card-count">$network_count</span>
+            <span class="card-count">{{ network_count }}</span>
         </div>
         <ul class="network-list">
-$networks_html
+            {% for network in networks %}
+            <li class="{{ 'v6' if ':' in network else '' }}"><a href="/ip/{{ network.split('/')[0] }}">{{ network }}</a></li>
+            {% endfor %}
         </ul>
     </div>
 
@@ -290,11 +65,10 @@ $networks_html
     <div class="api-footer">
         <div class="api-footer-label">API Endpoints</div>
         <div class="api-links">
-            <a href="/asn/$asn_number">/asn/$asn_number</a>
-            <a href="/api/asn-networks/$asn_number">/api/asn-networks/$asn_number</a>
+            <a href="/asn/{{ asn_number }}">/asn/{{ asn_number }}</a>
+            <a href="/api/asn-networks/{{ asn_number }}">/api/asn-networks/{{ asn_number }}</a>
         </div>
     </div>
 
 </div>
-</body>
-</html>
+{% endblock %}

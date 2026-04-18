@@ -1,28 +1,19 @@
 import ipaddress
-import json
 import time
 from pathlib import Path
-from string import Template
 from urllib.parse import quote_plus
 import maxminddb
 
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
-from starlette.routing import Route
+from starlette.responses import JSONResponse, RedirectResponse
+from starlette.routing import Route, Mount
 from starlette.exceptions import HTTPException
+from starlette.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
-HTML_DIR = Path(__file__).parent / "html"
-
-IP_TEMPLATE      = Template((HTML_DIR / "ip.html").read_text())
-ASN_TEMPLATE     = Template((HTML_DIR / "asn.html").read_text())
-COUNTRY_TEMPLATE = Template((HTML_DIR / "country.html").read_text())
-CIDR_TEMPLATE    = Template((HTML_DIR / "cidr.html").read_text())
-SEARCH_TEMPLATE        = Template((HTML_DIR / "search.html").read_text())
-MULTI_COUNTRY_TEMPLATE = Template((HTML_DIR / "multi_country.html").read_text())
-ASN_COUNTRY_TEMPLATE   = Template((HTML_DIR / "asn_country.html").read_text())
-INDEX_HTML       = (HTML_DIR / "index.html").read_text()
-SUBNET_HTML      = (HTML_DIR / "subnet.html").read_text()
+HTML_DIR  = Path(__file__).parent / "html"
+templates = Jinja2Templates(directory=str(HTML_DIR))
 
 
 # --- DB handles & caches ---
@@ -205,42 +196,28 @@ def flatten_for_html(ip: str, data: dict) -> dict:
     )
 
 
-def _prefix_list_html(networks: list[str]) -> str:
-    return "\n".join(
-        f'          <li class="{"v6" if ":" in n else ""}"><a href="/ip/{n.split("/")[0]}">{n}</a></li>'
-        for n in networks
-    )
-
-
-def _country_prefix_list_html(entries: list[tuple]) -> str:
-    rows = []
-    for cidr, asn_int, org in entries:
-        v6cls = " v6" if ":" in cidr else ""
-        rows.append(
-            f'          <li class="entry{v6cls}">'
-            f'<a class="prefix" href="/ip/{cidr.split("/")[0]}">{cidr}</a>'
-            f'<a class="asn-tag" href="/asn/{asn_int}">AS{asn_int}</a>'
-            f'<a class="org-tag" href="/search?q={quote_plus(org)}">{org}</a>'
-            f'</li>'
-        )
-    return "\n".join(rows)
-
-
 # --- Route handlers ---
 
 async def index(request: Request):
-    return HTMLResponse(INDEX_HTML)
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 async def subnet(request: Request):
-    return HTMLResponse(SUBNET_HTML)
+    return templates.TemplateResponse("subnet.html", {
+        "request": request,
+        "breadcrumbs": [("Home", "/"), ("Subnet Divider", None)],
+    })
 
 
 async def ip_lookup(request: Request):
     ip   = request.path_params["ip"].split("/")[0]
     data = lookup_ip(ip)
     if "text/html" in request.headers.get("accept", ""):
-        return HTMLResponse(IP_TEMPLATE.substitute(flatten_for_html(ip, data)))
+        return templates.TemplateResponse("ip.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), ("IP Lookup", None)],
+            **flatten_for_html(ip, data),
+        })
     return JSONResponse(data)
 
 
@@ -259,19 +236,17 @@ async def asn_view(request: Request):
         raise HTTPException(status_code=404, detail=f"No networks found for AS{asn_int}")
 
     if "text/html" in request.headers.get("accept", ""):
-        countries = entry.get("countries", [])
-        country_links = ", ".join(
-            f'<a class="asn-num" href="/country/{iso}">{COUNTRY_NAMES.get(iso, iso)}</a>'
-            for iso in countries
-        ) or "—"
-        return HTMLResponse(ASN_TEMPLATE.substitute(
-            asn_number=asn_int,
-            asn_org=entry["org"],
-            asn_org_url=quote_plus(entry["org"]),
-            network_count=len(entry["networks"]),
-            networks_html=_prefix_list_html(entry["networks"]),
-            country_row=country_links,
-        ))
+        countries = [{"iso": iso, "name": COUNTRY_NAMES.get(iso, iso)} for iso in entry.get("countries", [])]
+        return templates.TemplateResponse("asn.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), (f"AS{asn_int}", None)],
+            "asn_number": asn_int,
+            "asn_org": entry["org"],
+            "asn_org_url": quote_plus(entry["org"]),
+            "network_count": len(entry["networks"]),
+            "networks": entry["networks"],
+            "countries": countries,
+        })
     return JSONResponse({
         "asn": asn_int,
         "organization": entry["org"],
@@ -289,12 +264,18 @@ async def country_view(request: Request):
     name = COUNTRY_NAMES.get(iso, iso)
 
     if "text/html" in request.headers.get("accept", ""):
-        return HTMLResponse(COUNTRY_TEMPLATE.substitute(
-            iso=iso,
-            country_name=name,
-            network_count=len(entries),
-            networks_html=_country_prefix_list_html(entries),
-        ))
+        network_entries = [
+            {"cidr": cidr, "asn": asn_int, "org": org, "org_url": quote_plus(org), "is_v6": ":" in cidr}
+            for cidr, asn_int, org in entries
+        ]
+        return templates.TemplateResponse("country.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), (name, None)],
+            "iso": iso,
+            "country_name": name,
+            "network_count": len(entries),
+            "entries": network_entries,
+        })
     return JSONResponse({
         "iso":           iso,
         "country":       name,
@@ -333,35 +314,21 @@ async def search(request: Request):
 
     if q:
         results = sorted(
-            [{"asn": asn, "organization": e["org"]}
+            [{"asn": asn, "organization": e["org"], "org_url": quote_plus(e["org"])}
              for asn, e in ASN_CACHE.items()
              if q_lower in e["org"].lower()],
             key=lambda r: r["organization"].lower(),
         )
 
     if "text/html" in request.headers.get("accept", ""):
-        if results:
-            rows = "\n".join(
-                f'<tr><td><a class="asn-link" href="/asn/{r["asn"]}">AS{r["asn"]}</a></td>'
-                f'<td><a class="asn-num" href="/search?q={quote_plus(r["organization"])}">{r["organization"]}</a></td></tr>'
-                for r in results
-            )
-            results_html = (
-                f'<table class="results-table"><thead><tr>'
-                f'<th>AS Number</th><th>Organization</th>'
-                f'</tr></thead><tbody>{rows}</tbody></table>'
-            )
-        elif q:
-            results_html = '<p class="no-results">No results found.</p>'
-        else:
-            results_html = ""
-        return HTMLResponse(SEARCH_TEMPLATE.substitute(
-            query=q,
-            results_html=results_html,
-            result_count=len(results),
-        ))
-
-    return JSONResponse({"query": q, "result_count": len(results), "results": results})
+        return templates.TemplateResponse("search.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), ("Org Search", None)],
+            "query": q,
+            "result_count": len(results),
+            "results": results,
+        })
+    return JSONResponse({"query": q, "result_count": len(results), "results": [{"asn": r["asn"], "organization": r["organization"]} for r in results]})
 
 
 async def cidr_view(request: Request):
@@ -389,19 +356,21 @@ async def cidr_view(request: Request):
     )
 
     if "text/html" in request.headers.get("accept", ""):
-        return HTMLResponse(CIDR_TEMPLATE.substitute(
-            prefix=info["prefix"],
-            version=info["version"],
-            network_address=info["network_address"],
-            broadcast=info["broadcast"] or "—",
-            netmask=info["netmask"],
-            wildcard=info["wildcard"] or "—",
-            prefix_length=info["prefix_length"],
-            num_addresses=f"{info['num_addresses']:,}",
-            usable_hosts=f"{info['usable_hosts']:,}",
-            first_host=info["first_host"],
-            last_host=info["last_host"],
-        ))
+        return templates.TemplateResponse("cidr.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), ("CIDR", None)],
+            "prefix":          info["prefix"],
+            "version":         info["version"],
+            "network_address": info["network_address"],
+            "broadcast":       info["broadcast"] or "—",
+            "netmask":         info["netmask"],
+            "wildcard":        info["wildcard"] or "—",
+            "prefix_length":   info["prefix_length"],
+            "num_addresses":   f"{info['num_addresses']:,}",
+            "usable_hosts":    f"{info['usable_hosts']:,}",
+            "first_host":      info["first_host"],
+            "last_host":       info["last_host"],
+        })
 
     return JSONResponse(info)
 
@@ -485,20 +454,19 @@ async def asn_country_view(request: Request):
     country_name = COUNTRY_NAMES.get(iso, iso)
 
     if "text/html" in request.headers.get("accept", ""):
-        items = []
-        for cidr in networks:
-            cls = " v6" if ":" in cidr else ""
-            items.append(f'<li class="{cls}"><a href="/ip/{cidr}">{cidr}</a></li>')
-        return HTMLResponse(ASN_COUNTRY_TEMPLATE.substitute(
-            asn_number=asn_int,
-            asn_org=entry["org"],
-            asn_org_url=quote_plus(entry["org"]),
-            iso=iso,
-            country_name=country_name,
-            network_count=len(networks),
-            total_count=len(entry["networks"]),
-            networks_html="\n".join(items),
-        ))
+        network_items = [{"cidr": cidr, "is_v6": ":" in cidr} for cidr in networks]
+        return templates.TemplateResponse("asn_country.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), (f"AS{asn_int}", f"/asn/{asn_int}"), (country_name, None)],
+            "asn_number":   asn_int,
+            "asn_org":      entry["org"],
+            "asn_org_url":  quote_plus(entry["org"]),
+            "iso":          iso,
+            "country_name": country_name,
+            "network_count": len(networks),
+            "total_count":  len(entry["networks"]),
+            "networks":     network_items,
+        })
     return JSONResponse({
         "asn": asn_int,
         "organization": entry["org"],
@@ -523,49 +491,26 @@ async def multi_country_search(request: Request):
         results.sort(key=lambda r: r["org"].lower())
 
     if "text/html" in request.headers.get("accept", ""):
-        if results:
-            rows = []
-            for r in results:
-                tags = " ".join(
-                    f'<a class="country-tag {"matched" if iso in iso_set else ""}" '
-                    f'href="/asn/{r["asn"]}/country/{iso}">'
-                    f'{COUNTRY_NAMES.get(iso, iso)}&nbsp;({iso})</a>'
+        enriched = [
+            {
+                "asn": r["asn"],
+                "org": r["org"],
+                "org_url": quote_plus(r["org"]),
+                "country_count": len(r["countries"]),
+                "countries": [
+                    {"iso": iso, "name": COUNTRY_NAMES.get(iso, iso), "matched": iso in iso_set}
                     for iso in r["countries"]
-                )
-                rows.append(
-                    f'<tr>'
-                    f'<td data-val="{r["asn"]}"><a class="asn-link" href="/asn/{r["asn"]}">AS{r["asn"]}</a></td>'
-                    f'<td data-val="{r["org"].lower()}"><a class="asn-link" style="font-family:inherit;font-size:inherit;font-weight:inherit;color:inherit" href="/search?q={quote_plus(r["org"])}">{r["org"]}</a></td>'
-                    f'<td data-val="{len(r["countries"])}"><span class="count-badge">{len(r["countries"])}</span></td>'
-                    f'<td>{tags}</td>'
-                    f'</tr>'
-                )
-            results_html = (
-                '<table class="results-table" id="results-table"><thead><tr>'
-                '<th data-col="0" data-type="num">AS</th>'
-                '<th data-col="1" data-type="str">Organization</th>'
-                '<th data-col="2" data-type="num">#</th>'
-                '<th data-col="3" data-type="str">Countries</th>'
-                '</tr></thead><tbody>' + "\n".join(rows) + '</tbody></table>'
-            )
-            result_meta_html = (
-                f'<div class="result-meta">'
-                f'<strong>{len(results)}</strong> AS(es) matching '
-                f'<strong>{", ".join(isos)}</strong> with ≥2 countries'
-                f'</div>'
-            )
-        elif q:
-            results_html = '<p class="no-results">No ASes found matching all specified countries.</p>'
-            result_meta_html = ""
-        else:
-            results_html = ""
-            result_meta_html = ""
-        return HTMLResponse(MULTI_COUNTRY_TEMPLATE.substitute(
-            query=q,
-            result_meta_html=result_meta_html,
-            results_html=results_html,
-        ))
-
+                ],
+            }
+            for r in results
+        ]
+        return templates.TemplateResponse("multi_country.html", {
+            "request": request,
+            "breadcrumbs": [("Home", "/"), ("Multi-Country Search", None)],
+            "query":   q,
+            "isos":    isos,
+            "results": enriched,
+        })
     return JSONResponse({
         "query": isos,
         "result_count": len(results),
@@ -582,6 +527,7 @@ async def http_exception(request: Request, exc: HTTPException):
 app = Starlette(
     debug=False,
     routes=[
+        Mount("/static", StaticFiles(directory=str(HTML_DIR / "static")), name="static"),
         Route("/",                       index),
         Route("/subnet",                 subnet),
         Route("/ip/{ip:path}",           ip_lookup),

@@ -1,0 +1,1313 @@
+/* ── 1. Reset ────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ── 2. CSS custom properties ────────────────────────────────────────── */
+
+:root {
+    --bg:         #f5f5f3;
+    --page:       #ffffff;
+    --border:     #e4e4e0;
+    --label:      #8a8a85;
+    --value:      #1a1a18;
+    --muted:      #b0b0aa;
+    --section-bg: #fafaf8;
+    --accent:     #2563eb;
+    --accent-bg:  #eff6ff;
+    --tag-bg:     #f0f0ec;
+    --tag-text:   #5a5a55;
+    --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── 3. Base layout ──────────────────────────────────────────────────── */
+
+body {
+    background: var(--bg);
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--value);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 0 1rem 4rem;
+}
+
+.page {
+    margin: 0 auto;
+}
+
+/* ── 4. Page width modifiers ─────────────────────────────────────────── */
+
+.page--narrow  { max-width: 520px; }
+.page--default { max-width: 720px; }
+.page--wide    { max-width: 820px; }
+.page--full    { max-width: 900px; }
+
+/* ── 5. Site header ──────────────────────────────────────────────────── */
+
+.site-header {
+    max-width: 720px;
+    margin: 0 auto 1.5rem;
+    padding: 0.9rem 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.site-logo {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--value);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+}
+
+.site-logo:hover {
+    color: var(--accent);
+}
+
+.site-nav-links {
+    display: flex;
+    gap: 0;
+}
+
+.site-nav-links a {
+    font-size: 13px;
+    color: var(--label);
+    text-decoration: none;
+    margin-left: 1.25rem;
+}
+
+.site-nav-links a:hover {
+    color: var(--accent);
+}
+
+/* ── 6. Breadcrumb ───────────────────────────────────────────────────── */
+
+.breadcrumb {
+    max-width: 720px;
+    margin: 0 auto 1.25rem;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.15rem;
+}
+
+.bc-item {
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.bc-item:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.bc-sep {
+    margin: 0 0.2rem;
+    opacity: 0.5;
+}
+
+.bc-current {
+    color: var(--label);
+    font-weight: 500;
+}
+
+/* ── 7. Page header (title area) ─────────────────────────────────────── */
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.header-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+}
+
+.header-ip {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--value);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.header-asn {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.header-org {
+    margin-top: 0.4rem;
+    font-size: 15px;
+    color: var(--label);
+    font-weight: 500;
+}
+
+.header-org a {
+    color: var(--label);
+    text-decoration: none;
+}
+
+.header-org a:hover {
+    color: var(--accent);
+}
+
+.header-meta {
+    margin-top: 0.5rem;
+    font-size: 13px;
+    color: var(--label);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    align-items: center;
+}
+
+.header-meta strong {
+    color: var(--value);
+    font-weight: 600;
+}
+
+.header-meta .dot {
+    color: var(--muted);
+}
+
+.header-country {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--value);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.header-iso {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.header-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--value);
+    letter-spacing: -0.02em;
+}
+
+.header-prefix {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--value);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.header-version {
+    margin-top: 0.35rem;
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+}
+
+.header-sub {
+    margin-top: 0.35rem;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.center {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ── 8. Card ─────────────────────────────────────────────────────────── */
+
+.card {
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--section-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.card-header svg {
+    opacity: 0.4;
+    flex-shrink: 0;
+}
+
+.card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--label);
+}
+
+.card-count {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+}
+
+.card-body {
+    padding: 1rem 1.25rem;
+}
+
+/* ── 9. Row / label / value ──────────────────────────────────────────── */
+
+.row {
+    display: grid;
+    grid-template-columns: 155px 1fr;
+    align-items: baseline;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+}
+
+.row:last-child {
+    border-bottom: none;
+}
+
+.row-label {
+    font-size: 12px;
+    color: var(--label);
+    font-weight: 500;
+}
+
+.row-value {
+    font-size: 14px;
+    color: var(--value);
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.row-value.mono {
+    font-family: var(--mono);
+    font-size: 13px;
+}
+
+.row-value.plain {
+    font-family: var(--sans);
+    font-size: 14px;
+}
+
+.row-value.empty {
+    color: var(--muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* ── 10. Tags and badges ─────────────────────────────────────────────── */
+
+.tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    vertical-align: middle;
+    margin-left: 0.35rem;
+    line-height: 1.5;
+}
+
+.tag.accent {
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+.count-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+}
+
+/* ── 11. Links ───────────────────────────────────────────────────────── */
+
+.asn-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.asn-num:hover {
+    text-decoration: underline;
+}
+
+.asn-link {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.asn-link:hover {
+    text-decoration: underline;
+}
+
+/* Used for org-name links in the multi-country results table. */
+.org-link {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    text-decoration: none;
+}
+
+.org-link:hover {
+    text-decoration: underline;
+    color: var(--accent);
+}
+
+/* ── 12. Network list ────────────────────────────────────────────────── */
+
+.network-list {
+    list-style: none;
+    padding: 0.5rem 1.25rem;
+}
+
+.network-list li {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--value);
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.network-list li:last-child {
+    border-bottom: none;
+}
+
+.network-list li.v6 {
+    color: var(--label);
+}
+
+.network-list a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.network-list a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* Country-style entries: prefix + asn-tag + org-tag on one row */
+.network-list li.entry {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+}
+
+.network-list li.entry:last-child {
+    border-bottom: none;
+}
+
+.network-list li.v6 .prefix {
+    color: var(--label);
+}
+
+.network-list .prefix {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--value);
+    min-width: 160px;
+}
+
+.network-list .asn-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.network-list .asn-tag:hover {
+    text-decoration: underline;
+}
+
+.network-list .org-tag {
+    font-size: 12px;
+    color: var(--label);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+}
+
+.network-list .org-tag:hover {
+    text-decoration: underline;
+    color: var(--accent);
+}
+
+/* ── 13. Results table ───────────────────────────────────────────────── */
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.results-table thead tr {
+    background: var(--section-bg);
+}
+
+.results-table th {
+    padding: 0.65rem 1.25rem;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--label);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Sortable column headers (multi-country page) */
+.results-table th[data-col] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.results-table th[data-col]:hover {
+    color: var(--accent);
+}
+
+.results-table th[aria-sort]::after {
+    content: " ▲";
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+.results-table th[aria-sort="descending"]::after {
+    content: " ▼";
+}
+
+.results-table td {
+    padding: 0.6rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    vertical-align: top;
+}
+
+.results-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.results-table tbody tr:hover {
+    background: var(--section-bg);
+}
+
+.country-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    margin: 0.1rem 0.15rem 0.1rem 0;
+    text-decoration: none;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.country-tag:hover {
+    text-decoration: underline;
+}
+
+.country-tag.matched {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.result-meta {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+}
+
+.result-meta strong {
+    color: var(--value);
+}
+
+.no-results {
+    padding: 2rem 1.25rem;
+    color: var(--muted);
+    font-style: italic;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* ── 14. Form inputs and buttons ─────────────────────────────────────── */
+
+input[type="text"] {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--value);
+    outline: none;
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent);
+    background: #fff;
+}
+
+button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+select {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--value);
+    cursor: pointer;
+    outline: none;
+}
+
+select:focus {
+    border-color: var(--accent);
+}
+
+/* ── 15. Search bar (standalone — search.html, multi_country.html) ────── */
+
+.search-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.search-bar input[type="text"] {
+    font-size: 14px;
+    padding: 0.6rem 0.85rem;
+    border-radius: 7px;
+    background: var(--page);
+}
+
+.search-bar button {
+    padding: 0.6rem 1.1rem;
+    border-radius: 7px;
+}
+
+/* Search bar embedded inside a card (cidr.html "look up another prefix") */
+.card .search-bar {
+    margin-bottom: 0;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.card .search-bar:last-child {
+    border-bottom: none;
+}
+
+.card .search-bar input[type="text"] {
+    font-size: 13px;
+    padding: 0.45rem 0.7rem;
+    border-radius: 6px;
+    background: var(--bg);
+}
+
+.card .search-bar button {
+    font-size: 12.5px;
+    padding: 0.45rem 0.85rem;
+    border-radius: 6px;
+}
+
+/* ── 16. Search tabs (home page unified search) ──────────────────────── */
+
+.search-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.9rem 1.25rem 0;
+}
+
+.search-tab {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    background: var(--page);
+    color: var(--label);
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.search-tab:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg);
+}
+
+.search-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.search-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 0.4rem;
+    padding: 0 1.25rem 0.9rem;
+}
+
+/* ── 17. Input row (home page card inputs) ───────────────────────────── */
+
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+}
+
+.hint {
+    padding: 0 1.25rem 0.75rem;
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.hint a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.hint a:hover {
+    text-decoration: underline;
+}
+
+/* ── 18. Brand block (home page) ─────────────────────────────────────── */
+
+.brand {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.brand-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--value);
+    letter-spacing: -0.02em;
+}
+
+.brand-sub {
+    margin-top: 0.3rem;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/* ── 19. Quick links (home page) ─────────────────────────────────────── */
+
+.quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+}
+
+.quick-links a {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    text-decoration: none;
+    background: var(--accent-bg);
+    padding: 0.25rem 0.6rem;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.quick-links a:hover {
+    text-decoration: underline;
+}
+
+.divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin: 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ── 20. API footer ──────────────────────────────────────────────────── */
+
+.api-footer {
+    margin-top: 1.5rem;
+    padding: 0.9rem 1.25rem;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.api-footer-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.55rem;
+}
+
+.api-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.api-links a {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    text-decoration: none;
+    background: var(--accent-bg);
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.api-links a:hover {
+    text-decoration: underline;
+}
+
+/* ── 21. Back links (asn_country.html) ───────────────────────────────── */
+
+.back-links {
+    margin-top: 1.5rem;
+    padding: 0.9rem 1.25rem;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.back-links a {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    text-decoration: none;
+    background: var(--accent-bg);
+    padding: 0.2rem 0.55rem;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.back-links a:hover {
+    text-decoration: underline;
+}
+
+/* ── 22. Coordinates block (ip.html) ─────────────────────────────────── */
+
+.coords {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.coords .latlng {
+    font-family: var(--mono);
+    font-size: 13px;
+}
+
+.coords .accuracy {
+    font-size: 12px;
+    color: var(--label);
+}
+
+/* ── 23. CIDR subnet divider (cidr.html) ─────────────────────────────── */
+
+.divider-controls {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.divider-controls label {
+    font-size: 12px;
+    color: var(--label);
+    font-weight: 500;
+}
+
+.divider-meta {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-family: var(--mono);
+}
+
+.subnet-map {
+    padding: 0.75rem 1.25rem 1rem;
+}
+
+.subnet-row {
+    display: flex;
+    height: 28px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    align-items: center;
+}
+
+.subnet-addr {
+    min-width: 145px;
+    padding: 0 0.6rem;
+    color: var(--label);
+    font-size: 11px;
+    border-right: 1px solid var(--border);
+    background: var(--section-bg);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.subnet-bar {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 0.6rem;
+    position: relative;
+}
+
+.subnet-bar.c0 { background: #eff6ff; }
+.subnet-bar.c1 { background: #f0fdf4; }
+.subnet-bar.c2 { background: #fefce8; }
+.subnet-bar.c3 { background: #fff7ed; }
+.subnet-bar.c4 { background: #fdf4ff; }
+.subnet-bar.c5 { background: #fff1f2; }
+.subnet-bar.c6 { background: #f0fdfa; }
+.subnet-bar.c7 { background: #f8fafc; }
+
+.subnet-cidr {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.subnet-range {
+    margin-left: 0.75rem;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.subnet-link {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 0.6;
+}
+
+.subnet-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.too-many {
+    padding: 0.75rem 1.25rem 1rem;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* ── 24. Subnet divider interactive tool (subnet.html) ───────────────── */
+
+.input-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.input-bar input {
+    flex: 1;
+    min-width: 180px;
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--page);
+    color: var(--value);
+    outline: none;
+}
+
+.input-bar input:focus {
+    border-color: var(--accent);
+}
+
+.btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.btn-go {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-go:hover {
+    background: #1d4ed8;
+}
+
+.btn-reset {
+    background: var(--section-bg);
+    color: var(--label);
+    border: 1px solid var(--border);
+}
+
+.btn-reset:hover {
+    background: var(--border);
+}
+
+.stats-bar {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 12.5px;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+
+.stats-bar strong {
+    color: var(--value);
+}
+
+.subnet-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.subnet-table thead tr {
+    background: var(--section-bg);
+}
+
+.subnet-table th {
+    padding: 0.6rem 0.9rem;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--label);
+    border-bottom: 1px solid var(--border);
+}
+
+.subnet-table td {
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.subnet-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.subnet-table tbody tr:hover {
+    background: #fafafa;
+}
+
+.td-vis {
+    width: 38%;
+    padding: 0;
+    position: relative;
+    height: 36px;
+}
+
+.vis-track {
+    position: absolute;
+    inset: 4px 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.vis-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 4px;
+    transition: width 0.15s ease;
+}
+
+/* Depth fill colors */
+.d0 { background: #bfdbfe; }
+.d1 { background: #bbf7d0; }
+.d2 { background: #fde68a; }
+.d3 { background: #fca5a5; }
+.d4 { background: #d9b3f9; }
+.d5 { background: #fed7aa; }
+.d6 { background: #a5f3fc; }
+.d7 { background: #fbcfe8; }
+
+/* Depth text colors */
+.d0t { color: #1e40af; }
+.d1t { color: #166534; }
+.d2t { color: #854d0e; }
+.d3t { color: #991b1b; }
+.d4t { color: #6b21a8; }
+.d5t { color: #9a3412; }
+.d6t { color: #155e75; }
+.d7t { color: #831843; }
+
+.td-net {
+    padding: 0 0.9rem;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+.net-cidr {
+    font-weight: 700;
+}
+
+.net-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+}
+
+.td-hosts {
+    padding: 0 0.9rem;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--label);
+    white-space: nowrap;
+}
+
+.td-actions {
+    padding: 0 0.75rem;
+    white-space: nowrap;
+}
+
+.btn-split, .btn-join {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.btn-split {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: #bfdbfe;
+    margin-right: 0.3rem;
+}
+
+.btn-split:hover {
+    background: #dbeafe;
+}
+
+.btn-split:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.btn-join {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.btn-join:hover {
+    background: #dcfce7;
+}
+
+.empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.empty kbd {
+    font-family: var(--mono);
+    background: var(--section-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    font-size: 12px;
+    color: var(--value);
+}
+
+.error-msg {
+    padding: 0.65rem 1rem;
+    background: #fff1f2;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+    color: #991b1b;
+    font-size: 13px;
+    margin-bottom: 0.75rem;
+}
+
+/* ── 25. Responsive breakpoints ──────────────────────────────────────── */
+
+@media (max-width: 500px) {
+    .row {
+        grid-template-columns: 1fr;
+        gap: 0.1rem;
+    }
+
+    .row-label {
+        font-size: 11px;
+    }
+
+    .header-ip,
+    .header-asn,
+    .header-country,
+    .header-prefix {
+        font-size: 1.4rem;
+    }
+
+    .search-bar {
+        flex-direction: column;
+    }
+
+    .input-row {
+        flex-direction: column;
+    }
+
+    .subnet-addr {
+        min-width: 110px;
+        font-size: 10px;
+    }
+
+    .subnet-range {
+        display: none;
+    }
+
+    /* Hide org column on narrow screens (multi-country table) */
+    .results-table th:nth-child(2),
+    .results-table td:nth-child(2) {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .td-hosts {
+        display: none;
+    }
+
+    .td-vis {
+        width: 45%;
+    }
+
+    .net-sub {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .td-vis {
+        width: 35%;
+    }
+
+    .input-bar {
+        flex-direction: column;
+    }
+}
