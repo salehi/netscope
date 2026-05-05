@@ -1,3 +1,4 @@
+import asyncio
 import ipaddress
 import time
 from pathlib import Path
@@ -26,64 +27,74 @@ COUNTRY_NAMES:    dict[str, str]  = {}   # {iso: country_name}
 COUNTRY_ASN_MAP:  dict[str, list] = {}   # {iso: [(cidr, asn_int, org), ...]}
 COUNTRY_NAME_TO_ISO: dict[str, str] = {} # {lowercase_name: iso}
 START_TIME: float = 0.0
+CACHE_READY: bool = False
 
 
-def startup():
-    global DB_ASN, DB_CITY, DB_COUNTRY, ASN_CACHE, COUNTRY_NAMES, \
-           COUNTRY_ASN_MAP, COUNTRY_NAME_TO_ISO, START_TIME
+def _build_caches():
+    # Opens its own DB handles so the background thread doesn't share
+    # file state with the global handles used by request handlers.
+    global ASN_CACHE, COUNTRY_NAMES, COUNTRY_ASN_MAP, COUNTRY_NAME_TO_ISO, CACHE_READY
+    db_asn     = maxminddb.open_database("./GeoLite2-ASN.mmdb")
+    db_country = maxminddb.open_database("./GeoLite2-Country.mmdb")
+    try:
+        cache:    dict[int, dict] = {}
+        ctry_map: dict[str, list] = {}
+        for network, data in db_asn:
+            if not data:
+                continue
+            asn_int = data.get("autonomous_system_number")
+            org     = data.get("autonomous_system_organization", "")
+            if asn_int is None:
+                continue
+            cidr = str(network)
+            if asn_int not in cache:
+                cache[asn_int] = {"org": org, "networks": [], "countries": set()}
+            cache[asn_int]["networks"].append(cidr)
+
+            try:
+                ctry_data = db_country.get(str(network.network_address))
+            except Exception:
+                ctry_data = None
+            if ctry_data:
+                iso = (ctry_data.get("registered_country") or ctry_data.get("country") or {}).get("iso_code")
+                if not iso:
+                    iso = (ctry_data.get("country") or {}).get("iso_code")
+                if iso:
+                    ctry_map.setdefault(iso, []).append((cidr, asn_int, org))
+                    cache[asn_int]["countries"].add(iso)
+
+        for entry in cache.values():
+            entry["networks"].sort()
+            entry["countries"] = sorted(entry["countries"])
+        for entries in ctry_map.values():
+            entries.sort(key=lambda t: t[0])
+        ASN_CACHE       = cache
+        COUNTRY_ASN_MAP = ctry_map
+
+        names: dict[str, str] = {}
+        for _, data in db_country:
+            if not data:
+                continue
+            for field in ("registered_country", "country"):
+                rec = data.get(field) or {}
+                iso = rec.get("iso_code")
+                if iso and iso not in names:
+                    names[iso] = (rec.get("names") or {}).get("en", iso)
+        COUNTRY_NAMES       = names
+        COUNTRY_NAME_TO_ISO = {n.lower(): iso for iso, n in names.items()}
+    finally:
+        db_asn.close()
+        db_country.close()
+    CACHE_READY = True
+
+
+async def startup():
+    global DB_ASN, DB_CITY, DB_COUNTRY, START_TIME
     START_TIME = time.time()
     DB_ASN     = maxminddb.open_database("./GeoLite2-ASN.mmdb")
     DB_CITY    = maxminddb.open_database("./GeoLite2-City.mmdb")
     DB_COUNTRY = maxminddb.open_database("./GeoLite2-Country.mmdb")
-
-    # Build ASN cache and country→ASN map in a single pass over DB_ASN
-    cache:    dict[int, dict] = {}
-    ctry_map: dict[str, list] = {}
-    for network, data in DB_ASN:
-        if not data:
-            continue
-        asn_int = data.get("autonomous_system_number")
-        org     = data.get("autonomous_system_organization", "")
-        if asn_int is None:
-            continue
-        cidr = str(network)
-        if asn_int not in cache:
-            cache[asn_int] = {"org": org, "networks": [], "countries": set()}
-        cache[asn_int]["networks"].append(cidr)
-
-        # resolve country for this network's first address
-        try:
-            ctry_data = DB_COUNTRY.get(str(network.network_address))
-        except Exception:
-            ctry_data = None
-        if ctry_data:
-            iso = (ctry_data.get("registered_country") or ctry_data.get("country") or {}).get("iso_code")
-            if not iso:
-                iso = (ctry_data.get("country") or {}).get("iso_code")
-            if iso:
-                ctry_map.setdefault(iso, []).append((cidr, asn_int, org))
-                cache[asn_int]["countries"].add(iso)
-
-    for entry in cache.values():
-        entry["networks"].sort()
-        entry["countries"] = sorted(entry["countries"])
-    for entries in ctry_map.values():
-        entries.sort(key=lambda t: t[0])
-    ASN_CACHE       = cache
-    COUNTRY_ASN_MAP = ctry_map
-
-    # Build country name cache
-    names: dict[str, str] = {}
-    for _, data in DB_COUNTRY:
-        if not data:
-            continue
-        for field in ("registered_country", "country"):
-            rec = data.get(field) or {}
-            iso = rec.get("iso_code")
-            if iso and iso not in names:
-                names[iso] = (rec.get("names") or {}).get("en", iso)
-    COUNTRY_NAMES    = names
-    COUNTRY_NAME_TO_ISO = {n.lower(): iso for iso, n in names.items()}
+    asyncio.create_task(asyncio.to_thread(_build_caches))
 
 
 def shutdown():
@@ -230,6 +241,8 @@ async def myip(request: Request):
 
 
 async def asn_view(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     asn_int = _asn_int(request.path_params["asn"])
     entry   = ASN_CACHE.get(asn_int)
     if not entry:
@@ -256,6 +269,8 @@ async def asn_view(request: Request):
 
 
 async def country_view(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     iso     = request.path_params["iso"].upper()
     entries = COUNTRY_ASN_MAP.get(iso)
     if not entries:
@@ -285,6 +300,8 @@ async def country_view(request: Request):
 
 
 async def country_search(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     q = request.query_params.get("q", "").strip()
     if not q:
         raise HTTPException(status_code=400, detail="Missing query parameter q")
@@ -308,6 +325,8 @@ async def country_search(request: Request):
 
 
 async def search(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     q       = request.query_params.get("q", "").strip()
     q_lower = q.lower()
     results = []
@@ -397,6 +416,7 @@ async def bulk_lookup(request: Request):
 async def health(request: Request):
     return JSONResponse({
         "status": "ok",
+        "cache_ready": CACHE_READY,
         "uptime_seconds": round(time.time() - START_TIME, 1),
         "databases": {
             name: {
@@ -427,6 +447,8 @@ async def api_country(request: Request):
 
 
 async def api_asn_networks(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     asn_int = _asn_int(request.path_params["asn"])
     entry   = ASN_CACHE.get(asn_int)
     if not entry:
@@ -440,6 +462,8 @@ async def api_asn_networks(request: Request):
 
 
 async def asn_country_view(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     asn_int = _asn_int(request.path_params["asn"])
     iso     = request.path_params["iso"].upper()
     entry   = ASN_CACHE.get(asn_int)
@@ -478,6 +502,8 @@ async def asn_country_view(request: Request):
 
 
 async def multi_country_search(request: Request):
+    if not CACHE_READY:
+        raise HTTPException(status_code=503, detail="warming up")
     q = request.query_params.get("q", "").strip()
     isos = [s.strip().upper() for s in q.split(",") if s.strip()] if q else []
     iso_set = set(isos)
