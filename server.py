@@ -31,7 +31,7 @@ START_TIME: float = 0.0
 CACHE_READY: bool = False
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("uvicorn.error")
 
 
 def _build_caches():
