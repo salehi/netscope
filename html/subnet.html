@@ -178,7 +178,7 @@ function render() {
             </div>
           </td>
           <td class="td-net">
-            <div class="net-cidr d${dc}t">${cidr}</div>
+            <div class="net-cidr d${dc}t"><a href="/cidr/${encodeURIComponent(cidr)}" class="cidr-link">${cidr}</a></div>
             <div class="net-sub">${range}</div>
           </td>
           <td class="td-hosts">${hosts}</td>
