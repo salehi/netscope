@@ -1,5 +1,6 @@
 import asyncio
 import ipaddress
+import logging
 import time
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -30,10 +31,15 @@ START_TIME: float = 0.0
 CACHE_READY: bool = False
 
 
+log = logging.getLogger(__name__)
+
+
 def _build_caches():
     # Opens its own DB handles so the background thread doesn't share
     # file state with the global handles used by request handlers.
     global ASN_CACHE, COUNTRY_NAMES, COUNTRY_ASN_MAP, COUNTRY_NAME_TO_ISO, CACHE_READY
+    log.info("Cache warmup started")
+    t0 = time.monotonic()
     db_asn     = maxminddb.open_database("./GeoLite2-ASN.mmdb")
     db_country = maxminddb.open_database("./GeoLite2-Country.mmdb")
     try:
@@ -86,6 +92,7 @@ def _build_caches():
         db_asn.close()
         db_country.close()
     CACHE_READY = True
+    log.info("Cache warmup complete in %.1fs", time.monotonic() - t0)
 
 
 async def startup():
