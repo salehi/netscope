@@ -358,7 +358,7 @@ async def cidr_view(request: Request):
     if "text/html" in request.headers.get("accept", ""):
         return templates.TemplateResponse("cidr.html", {
             "request": request,
-            "breadcrumbs": [("Home", "/"), ("CIDR", None)],
+            "breadcrumbs": [("Home", "/"), ("CIDR", None), (info["prefix"], f"/subnet?q={quote_plus(info['prefix'])}")],
             "prefix":          info["prefix"],
             "version":         info["version"],
             "network_address": info["network_address"],

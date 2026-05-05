@@ -21,7 +21,9 @@
 <nav class="breadcrumb" aria-label="Breadcrumb">
     {% for label, url in breadcrumbs %}
         {% if not loop.last %}
-            <a class="bc-item" href="{{ url }}">{{ label }}</a><span class="bc-sep">›</span>
+            {% if url %}<a class="bc-item" href="{{ url }}">{{ label }}</a>{% else %}<span class="bc-item">{{ label }}</span>{% endif %}<span class="bc-sep">›</span>
+        {% elif url %}
+            <a class="bc-item bc-current" href="{{ url }}" aria-current="page">{{ label }}</a>
         {% else %}
             <span class="bc-item bc-current" aria-current="page">{{ label }}</span>
         {% endif %}
