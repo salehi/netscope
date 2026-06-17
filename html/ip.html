@@ -9,8 +9,10 @@
         <div class="header-label">IP Address</div>
         <div class="header-ip">{{ ip }}</div>
         <div class="header-meta">
-            <strong>{{ asn_org }}</strong>
-            <span class="dot">·</span>
+            {% if asn_present %}
+                <strong>{{ asn_org }}</strong>
+                <span class="dot">·</span>
+            {% endif %}
             <span>{{ country_name }}</span>
         </div>
     </div>
@@ -23,6 +25,7 @@
             </svg>
             <span class="card-title">Network</span>
         </div>
+        {% if asn_present %}
         <div class="row">
             <span class="row-label">AS Number</span>
             <span class="row-value"><a class="asn-num" href="/asn/{{ asn_number }}">AS{{ asn_number }}</a></span>
@@ -35,6 +38,15 @@
             <span class="row-label">Network Prefix</span>
             <span class="row-value mono"><a class="asn-num" href="/ip/{{ asn_prefix_addr }}">{{ asn_prefix }}</a></span>
         </div>
+        {% else %}
+        <div class="card-note">
+            <p>This IP is not announced in the global BGP routing table, so no
+            autonomous system is associated with it.</p>
+            <p class="card-note-hint">Typical for IXP peering LANs, reserved or
+            bogon ranges, and internal-only allocations. Geolocation data may
+            still be available below.</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Location -->

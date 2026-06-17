@@ -193,6 +193,7 @@ def flatten_for_html(ip: str, data: dict) -> dict:
 
     return dict(
         ip=ip,
+        asn_present   = bool(asn),
         asn_number    = _val(asn, "autonomous_system_number") or "—",
         asn_org       = _val(asn, "autonomous_system_organization") or "—",
         asn_org_url   = quote_plus(_val(asn, "autonomous_system_organization") or ""),

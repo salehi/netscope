@@ -341,6 +341,23 @@ body {
     font-weight: 400;
 }
 
+.card-note {
+    padding: 0.9rem 1.25rem 1rem;
+}
+
+.card-note p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--value);
+}
+
+.card-note-hint {
+    margin-top: 0.4rem !important;
+    font-size: 12px;
+    color: var(--muted);
+}
+
 /* ── 10. Tags and badges ─────────────────────────────────────────────── */
 
 .tag {
